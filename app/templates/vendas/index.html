@@ -1,0 +1,641 @@
+{% extends "base.html" %}
+
+{% block title %}Vendas - Sistema Crediário Açougue{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-shopping-cart text-primary"></i>
+                        Vendas
+                        {% if cliente_selecionado %}
+                        <small class="text-muted">- {{ cliente_selecionado.nome }}</small>
+                        {% endif %}
+                    </h1>
+                    <p class="text-muted mb-0">
+                        {{ pagination.total }} venda(s) encontrada(s)
+                        {% if termo_busca %}para "{{ termo_busca }}"{% endif %}
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ url_for('vendas.create') }}" class="btn btn-success">
+                        <i class="fas fa-plus"></i>
+                        <span class="d-none d-md-inline">Nova Venda</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Vendas
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats.total_vendas }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Em Aberto
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats.vendas_abertas }}
+                            </div>
+                            <div class="text-xs text-warning">
+                                R$ {{ "%.2f"|format(stats.valor_total_aberto) }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Vencidas
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats.vendas_vencidas }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Vendas Hoje
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats.vendas_hoje }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters and Search -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('vendas.index') }}" class="row">
+                        
+                        <!-- Search -->
+                        <div class="col-md-3 mb-3">
+                            <label for="search" class="form-label">Buscar</label>
+                            <div class="input-group">
+                                <input type="search" 
+                                       class="form-control" 
+                                       id="search" 
+                                       name="q" 
+                                       placeholder="ID da venda ou cliente..."
+                                       value="{{ termo_busca }}">
+                                <div class="input-group-append">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Status Filter -->
+                        <div class="col-md-2 mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select name="status" id="status" class="form-control">
+                                {% for value, label in status_vendas %}
+                                <option value="{{ value }}" {{ 'selected' if status == value else '' }}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Date Range -->
+                        <div class="col-md-2 mb-3">
+                            <label for="data_inicio" class="form-label">Data Início</label>
+                            <input type="date" 
+                                   class="form-control" 
+                                   id="data_inicio" 
+                                   name="data_inicio" 
+                                   value="{{ data_inicio }}">
+                        </div>
+                        
+                        <div class="col-md-2 mb-3">
+                            <label for="data_fim" class="form-label">Data Fim</label>
+                            <input type="date" 
+                                   class="form-control" 
+                                   id="data_fim" 
+                                   name="data_fim" 
+                                   value="{{ data_fim }}">
+                        </div>
+                        
+                        <!-- Sort -->
+                        <div class="col-md-2 mb-3">
+                            <label for="ordem" class="form-label">Ordenar</label>
+                            <select name="ordem" id="ordem" class="form-control">
+                                {% for value, label in ordenacao_vendas %}
+                                <option value="{{ value }}" {{ 'selected' if ordenacao == value else '' }}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Actions -->
+                        <div class="col-md-1 mb-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-flex">
+                                <button type="submit" class="btn btn-primary mr-1">
+                                    <i class="fas fa-filter"></i>
+                                </button>
+                                <a href="{{ url_for('vendas.index') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden fields to preserve client filter -->
+                        {% if cliente_selecionado %}
+                        <input type="hidden" name="cliente_id" value="{{ cliente_selecionado.id }}">
+                        {% endif %}
+                        
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sales Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        Lista de Vendas
+                    </h6>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" 
+                                type="button" data-toggle="dropdown">
+                            <i class="fas fa-cog"></i> Opções
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="#" onclick="exportarCSV()">
+                                <i class="fas fa-download"></i> Exportar CSV
+                            </a>
+                            <a class="dropdown-item" href="#" onclick="imprimirLista()">
+                                <i class="fas fa-print"></i> Imprimir Lista
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if vendas %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th width="8%">Venda</th>
+                                    <th width="20%">Cliente</th>
+                                    <th width="12%">Data</th>
+                                    <th width="12%">Vencimento</th>
+                                    <th width="12%">Valor</th>
+                                    <th width="10%">Status</th>
+                                    <th width="15%">Pagamento</th>
+                                    <th width="11%">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for venda in vendas %}
+                                <tr class="{{ 'table-danger' if venda.esta_vencida and venda.status == 'aberta' else '' }}">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <a href="{{ url_for('vendas.view', id=venda.id) }}" 
+                                               class="font-weight-bold text-primary">
+                                                #{{ venda.id }}
+                                            </a>
+                                            {% if venda.eh_restante %}
+                                            <span class="badge badge-info ml-1" 
+                                                  data-toggle="tooltip" 
+                                                  title="Venda de saldo restante">
+                                                <i class="fas fa-info"></i>
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="mr-2">
+                                                <div class="icon-circle bg-{{ 'success' if venda.cliente.ativo else 'secondary' }} bg-{{ 'danger' if venda.cliente.esta_inadimplente else '' }}">
+                                                    <i class="fas fa-user text-white"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <a href="{{ url_for('clientes.view', id=venda.cliente.id) }}" 
+                                                   class="font-weight-bold text-decoration-none">
+                                                    {{ venda.cliente.nome[:25] }}{% if venda.cliente.nome|length > 25 %}...{% endif %}
+                                                </a>
+                                                {% if venda.cliente.telefone %}
+                                                <br><small class="text-muted">{{ venda.cliente.telefone }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {{ venda.data_venda.strftime('%d/%m/%Y') }}
+                                        <br><small class="text-muted">
+                                            {{ venda.data_criacao.strftime('%H:%M') }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {{ venda.data_vencimento.strftime('%d/%m/%Y') }}
+                                        {% if venda.esta_vencida and venda.status == 'aberta' %}
+                                        <br><small class="text-danger">
+                                            {{ venda.dias_atraso }} dia(s) em atraso
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="font-weight-bold">
+                                            R$ {{ "%.2f"|format(venda.total) }}
+                                        </span>
+                                        {% if venda.valor_pago > 0 %}
+                                        <br><small class="text-success">
+                                            Pago: R$ {{ "%.2f"|format(venda.valor_pago) }}
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-{{ venda.status_color }}">
+                                            {{ venda.status_display }}
+                                        </span>
+                                        {% if venda.esta_vencida and venda.status == 'aberta' %}
+                                        <br><span class="badge badge-danger mt-1">Vencida</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if venda.data_pagamento %}
+                                            {{ venda.data_pagamento.strftime('%d/%m/%Y') }}
+                                            <br><small class="text-success">Quitada</small>
+                                        {% elif venda.valor_pago > 0 %}
+                                            <small class="text-warning">Parcial</small>
+                                            <br><small class="text-muted">
+                                                Resta: R$ {{ "%.2f"|format(venda.valor_restante) }}
+                                            </small>
+                                        {% else %}
+                                            <span class="text-muted">Pendente</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('vendas.view', id=venda.id) }}" 
+                                               class="btn btn-sm btn-outline-primary"
+                                               data-toggle="tooltip" title="Ver Detalhes">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if venda.status != 'paga' and not venda.eh_restante %}
+                                            <a href="{{ url_for('vendas.edit', id=venda.id) }}" 
+                                               class="btn btn-sm btn-outline-secondary"
+                                               data-toggle="tooltip" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            {% endif %}
+                                            {% if venda.status == 'aberta' %}
+                                            <a href="{{ url_for('pagamentos.create', venda_id=venda.id) }}" 
+                                               class="btn btn-sm btn-outline-success"
+                                               data-toggle="tooltip" title="Pagamento">
+                                                <i class="fas fa-money-bill-wave"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if pagination.pages > 1 %}
+                    <div class="card-footer">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <small class="text-muted">
+                                    Mostrando {{ pagination.per_page * (pagination.page - 1) + 1 }} a 
+                                    {{ [pagination.per_page * pagination.page, pagination.total]|min }} de 
+                                    {{ pagination.total }} registros
+                                </small>
+                            </div>
+                            <div class="col-md-6">
+                                <nav aria-label="Paginação">
+                                    <ul class="pagination pagination-sm justify-content-end mb-0">
+                                        {% if pagination.has_prev %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('vendas.index', page=pagination.prev_num, q=termo_busca, status=status, data_inicio=data_inicio, data_fim=data_fim, ordem=ordenacao, cliente_id=cliente_selecionado.id if cliente_selecionado else '') }}">
+                                                <i class="fas fa-chevron-left"></i>
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% for page_num in pagination.iter_pages() %}
+                                            {% if page_num %}
+                                                {% if page_num != pagination.page %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="{{ url_for('vendas.index', page=page_num, q=termo_busca, status=status, data_inicio=data_inicio, data_fim=data_fim, ordem=ordenacao, cliente_id=cliente_selecionado.id if cliente_selecionado else '') }}">
+                                                        {{ page_num }}
+                                                    </a>
+                                                </li>
+                                                {% else %}
+                                                <li class="page-item active">
+                                                    <span class="page-link">{{ page_num }}</span>
+                                                </li>
+                                                {% endif %}
+                                            {% else %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                            {% endif %}
+                                        {% endfor %}
+                                        
+                                        {% if pagination.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('vendas.index', page=pagination.next_num, q=termo_busca, status=status, data_inicio=data_inicio, data_fim=data_fim, ordem=ordenacao, cliente_id=cliente_selecionado.id if cliente_selecionado else '') }}">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% else %}
+                    <!-- Empty State -->
+                    <div class="text-center py-5">
+                        <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhuma venda encontrada</h5>
+                        {% if termo_busca or status != 'todas' or data_inicio or data_fim %}
+                        <p class="text-muted">
+                            Tente ajustar os filtros ou fazer uma nova busca.
+                        </p>
+                        <a href="{{ url_for('vendas.index') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-times"></i> Limpar Filtros
+                        </a>
+                        {% else %}
+                        <p class="text-muted">
+                            Comece registrando sua primeira venda.
+                        </p>
+                        <a href="{{ url_for('vendas.create') }}" class="btn btn-success">
+                            <i class="fas fa-plus"></i> Nova Venda
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.icon-circle {
+    width: 35px;
+    height: 35px;
+    border-radius: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.table-danger {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+}
+
+.badge {
+    font-size: 0.7rem;
+}
+
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 2px;
+    }
+    
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+}
+
+/* Quick date filters */
+.quick-date-filters {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.quick-date-filters .btn {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Auto-submit on filter change
+    $('#status, #ordem').on('change', function() {
+        $(this).closest('form').submit();
+    });
+    
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+    
+    // Quick date filters
+    addQuickDateFilters();
+    
+    // Real-time search with debounce
+    let searchTimeout;
+    $('#search').on('input', function() {
+        clearTimeout(searchTimeout);
+        const query = $(this).val();
+        
+        if (query.length >= 2 || query === '') {
+            searchTimeout = setTimeout(() => {
+                $(this).closest('form').submit();
+            }, 1000);
+        }
+    });
+    
+    // Keyboard shortcuts
+    $(document).on('keydown', function(e) {
+        // Ctrl + N for new sale
+        if ((e.ctrlKey || e.metaKey) && e.keyCode === 78) {
+            e.preventDefault();
+            window.location.href = "{{ url_for('vendas.create') }}";
+        }
+        
+        // F3 to focus search
+        if (e.keyCode === 114) {
+            e.preventDefault();
+            $('#search').focus();
+        }
+    });
+});
+
+function addQuickDateFilters() {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const week = new Date(today);
+    week.setDate(week.getDate() - 7);
+    
+    const month = new Date(today);
+    month.setDate(month.getDate() - 30);
+    
+    const quickFilters = `
+        <div class="quick-date-filters">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('today')">Hoje</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('yesterday')">Ontem</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('week')">7 dias</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDateRange('month')">30 dias</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearDateRange()">Limpar</button>
+        </div>
+    `;
+    
+    $('.form-label:contains("Data Início")').parent().before(quickFilters);
+}
+
+function setDateRange(period) {
+    const today = new Date();
+    let startDate, endDate = today;
+    
+    switch(period) {
+        case 'today':
+            startDate = today;
+            break;
+        case 'yesterday':
+            startDate = new Date(today);
+            startDate.setDate(startDate.getDate() - 1);
+            endDate = startDate;
+            break;
+        case 'week':
+            startDate = new Date(today);
+            startDate.setDate(startDate.getDate() - 7);
+            break;
+        case 'month':
+            startDate = new Date(today);
+            startDate.setDate(startDate.getDate() - 30);
+            break;
+    }
+    
+    $('#data_inicio').val(startDate.toISOString().split('T')[0]);
+    $('#data_fim').val(endDate.toISOString().split('T')[0]);
+    $('form').submit();
+}
+
+function clearDateRange() {
+    $('#data_inicio, #data_fim').val('');
+    $('form').submit();
+}
+
+function exportarCSV() {
+    App.ui.showToast('Funcionalidade em desenvolvimento', 'info');
+}
+
+function imprimirLista() {
+    window.print();
+}
+
+// Status color coding
+function updateStatusIndicators() {
+    $('.table tbody tr').each(function() {
+        const $row = $(this);
+        const isOverdue = $row.hasClass('table-danger');
+        
+        if (isOverdue) {
+            $row.find('.badge').addClass('pulse-animation');
+        }
+    });
+}
+
+updateStatusIndicators();
+
+// Add CSS for pulse animation
+const style = document.createElement('style');
+style.textContent = `
+    .pulse-animation {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

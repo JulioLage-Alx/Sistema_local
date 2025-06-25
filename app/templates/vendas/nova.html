@@ -1,0 +1,793 @@
+{% extends "base.html" %}
+
+{% block title %}Nova Venda - Sistema Crediário Açougue{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-plus text-success"></i>
+                        Nova Venda
+                    </h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('vendas.index') }}">Vendas</a>
+                            </li>
+                            <li class="breadcrumb-item active">Nova Venda</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <a href="{{ url_for('vendas.index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="d-none d-md-inline">Voltar</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Form -->
+    <form method="POST" class="needs-validation" novalidate id="vendaForm">
+        
+        <div class="row">
+            
+            <!-- Form Column -->
+            <div class="col-xl-8 col-lg-7">
+                
+                <!-- Client Selection -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-user"></i>
+                            Cliente
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label for="cliente_id" class="form-label required">
+                                        Selecionar Cliente
+                                    </label>
+                                    <select class="form-control" id="cliente_id" name="cliente_id" required>
+                                        <option value="">Selecione um cliente...</option>
+                                        {% if cliente_selecionado %}
+                                        <option value="{{ cliente_selecionado.id }}" selected>
+                                            {{ cliente_selecionado.nome }}
+                                            {% if cliente_selecionado.cpf %} - {{ cliente_selecionado.cpf }}{% endif %}
+                                        </option>
+                                        {% endif %}
+                                    </select>
+                                    <div class="invalid-feedback">
+                                        Por favor, selecione um cliente.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div>
+                                        <a href="{{ url_for('clientes.create') }}" 
+                                           class="btn btn-outline-primary btn-block"
+                                           target="_blank">
+                                            <i class="fas fa-plus"></i>
+                                            Novo Cliente
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Client Info Display -->
+                        <div id="cliente-info" class="alert alert-info" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Nome:</strong> <span id="cliente-nome"></span><br>
+                                    <strong>Telefone:</strong> <span id="cliente-telefone"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Limite:</strong> <span id="cliente-limite"></span><br>
+                                    <strong>Disponível:</strong> <span id="cliente-disponivel"></span>
+                                </div>
+                            </div>
+                            <div id="cliente-alerta" class="mt-2" style="display: none;"></div>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- Sale Details -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-calendar"></i>
+                            Dados da Venda
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="data_venda" class="form-label required">
+                                        Data da Venda
+                                    </label>
+                                    <input type="date" 
+                                           class="form-control" 
+                                           id="data_venda" 
+                                           name="data_venda" 
+                                           value="{{ date.today().isoformat() }}"
+                                           required>
+                                    <div class="invalid-feedback">
+                                        Data da venda é obrigatória.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="data_vencimento" class="form-label">
+                                        Data de Vencimento
+                                    </label>
+                                    <input type="date" 
+                                           class="form-control" 
+                                           id="data_vencimento" 
+                                           name="data_vencimento">
+                                    <small class="form-text text-muted">
+                                        Deixe em branco para usar o padrão (30 dias).
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="observacoes" class="form-label">
+                                Observações
+                            </label>
+                            <textarea class="form-control" 
+                                      id="observacoes" 
+                                      name="observacoes" 
+                                      rows="3"
+                                      placeholder="Observações sobre a venda (opcional)"
+                                      maxlength="500"></textarea>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- Items -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-list"></i>
+                            Itens da Venda
+                        </h6>
+                        <button type="button" class="btn btn-success btn-sm" onclick="adicionarItem()">
+                            <i class="fas fa-plus"></i>
+                            Adicionar Item
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div id="itens-container">
+                            <!-- Items will be added here dynamically -->
+                        </div>
+                        
+                        <div class="text-center" id="no-items-message">
+                            <i class="fas fa-box-open fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">Nenhum item adicionado.</p>
+                            <button type="button" class="btn btn-primary" onclick="adicionarItem()">
+                                <i class="fas fa-plus"></i>
+                                Adicionar Primeiro Item
+                            </button>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- Form Actions -->
+                <div class="card shadow">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary" onclick="limparFormulario()">
+                                    <i class="fas fa-eraser"></i>
+                                    Limpar
+                                </button>
+                            </div>
+                            <div>
+                                <a href="{{ url_for('vendas.index') }}" class="btn btn-outline-secondary mr-2">
+                                    <i class="fas fa-times"></i>
+                                    Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-success" id="submitBtn">
+                                    <i class="fas fa-save"></i>
+                                    Registrar Venda
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+            
+            <!-- Summary Column -->
+            <div class="col-xl-4 col-lg-5">
+                
+                <!-- Total Summary -->
+                <div class="card shadow mb-4 sticky-top" style="top: 20px;">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-success">
+                            <i class="fas fa-calculator"></i>
+                            Resumo da Venda
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div class="summary-item">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Subtotal:</span>
+                                <span id="subtotal-display" class="font-weight-bold">R$ 0,00</span>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="summary-item">
+                            <div class="d-flex justify-content-between mb-3">
+                                <span class="h6">Total:</span>
+                                <span id="total-display" class="h5 font-weight-bold text-success">R$ 0,00</span>
+                            </div>
+                        </div>
+                        
+                        <div id="credit-check" class="alert" style="display: none;">
+                            <!-- Credit limit check will be displayed here -->
+                        </div>
+                        
+                        <div class="text-center">
+                            <small class="text-muted">
+                                Total atualizado automaticamente
+                            </small>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-bolt"></i>
+                            Ações Rápidas
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-outline-primary btn-block" onclick="adicionarItemRapido('Carne Moída', '1', '15.00')">
+                                <i class="fas fa-plus"></i>
+                                Carne Moída - R$ 15,00
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-outline-primary btn-block" onclick="adicionarItemRapido('Frango', '1', '12.00')">
+                                <i class="fas fa-plus"></i>
+                                Frango - R$ 12,00
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-outline-primary btn-block" onclick="adicionarItemRapido('Linguiça', '1', '18.00')">
+                                <i class="fas fa-plus"></i>
+                                Linguiça - R$ 18,00
+                            </button>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="text-center">
+                            <small class="text-muted">
+                                Clique para adicionar rapidamente
+                            </small>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+            </div>
+            
+        </div>
+        
+    </form>
+    
+</div>
+
+<!-- Item Template (hidden) -->
+<template id="item-template">
+    <div class="item-venda border rounded p-3 mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">
+                <span class="badge badge-secondary item-numero">1</span>
+                Item
+            </h6>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerItem(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        
+        <div class="row">
+            <div class="col-12 mb-3">
+                <label class="form-label required">Descrição</label>
+                <input type="text" 
+                       class="form-control item-descricao" 
+                       name="item_INDEX_descricao" 
+                       placeholder="Ex: Carne moída, Frango inteiro, etc."
+                       required>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <label class="form-label required">Quantidade</label>
+                <input type="text" 
+                       class="form-control mask-quantity item-quantidade" 
+                       name="item_INDEX_quantidade" 
+                       placeholder="1,000"
+                       required>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <label class="form-label required">Valor Unit.</label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">R$</span>
+                    </div>
+                    <input type="text" 
+                           class="form-control mask-money item-valor" 
+                           name="item_INDEX_valor_unitario" 
+                           placeholder="0,00"
+                           required>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Subtotal</label>
+                <div class="form-control-plaintext item-subtotal font-weight-bold">R$ 0,00</div>
+            </div>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.required::after {
+    content: " *";
+    color: red;
+}
+
+.item-venda {
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.item-venda:hover {
+    background-color: #e9ecef;
+}
+
+.sticky-top {
+    position: sticky;
+    top: 20px;
+    z-index: 1020;
+}
+
+.summary-item {
+    font-size: 1.1rem;
+}
+
+.alert-credit {
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    margin-bottom: 0;
+}
+
+.form-control-plaintext {
+    background-color: #fff;
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    padding: 0.375rem 0.75rem;
+}
+
+@media (max-width: 1200px) {
+    .sticky-top {
+        position: relative;
+        top: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .item-venda .row {
+        margin: 0;
+    }
+    
+    .item-venda .col-md-4 {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+}
+
+/* Loading state */
+.btn-loading {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.btn-loading .fas {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/vendas.js') }}"></script>
+<script>
+let itemIndex = 0;
+
+$(document).ready(function() {
+    // Initialize Select2 for client selection
+    initClientSelect();
+    
+    // Initialize form validation
+    initFormValidation();
+    
+    // Auto-calculate due date when sale date changes
+    $('#data_venda').on('change', function() {
+        if (!$('#data_vencimento').val()) {
+            const saleDate = new Date($(this).val());
+            const dueDate = new Date(saleDate);
+            dueDate.setDate(dueDate.getDate() + 30);
+            $('#data_vencimento').val(dueDate.toISOString().split('T')[0]);
+        }
+    });
+    
+    // Add first item automatically if client is pre-selected
+    {% if cliente_selecionado %}
+    adicionarItem();
+    $('#cliente_id').trigger('change');
+    {% endif %}
+    
+    // Form submission handling
+    $('#vendaForm').on('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Add loading state
+        $('#submitBtn').addClass('btn-loading');
+    });
+});
+
+function initClientSelect() {
+    $('#cliente_id').select2({
+        placeholder: 'Digite o nome do cliente...',
+        minimumInputLength: 2,
+        ajax: {
+            url: '{{ url_for("clientes.api_buscar") }}',
+            dataType: 'json',
+            delay: 250,
+            data: function(params) {
+                return {
+                    q: params.term
+                };
+            },
+            processResults: function(data) {
+                return {
+                    results: data.map(function(cliente) {
+                        return {
+                            id: cliente.id,
+                            text: cliente.nome + (cliente.cpf ? ' - ' + cliente.cpf : ''),
+                            cliente: cliente
+                        };
+                    })
+                };
+            }
+        }
+    });
+    
+    // Handle client selection
+    $('#cliente_id').on('change', function() {
+        const clienteId = $(this).val();
+        if (clienteId) {
+            loadClientInfo(clienteId);
+        } else {
+            hideClientInfo();
+        }
+    });
+}
+
+function loadClientInfo(clienteId) {
+    $.get(`{{ url_for("clientes.api_resumo", id=0) }}`.replace('0', clienteId))
+        .done(function(data) {
+            showClientInfo(data);
+        })
+        .fail(function() {
+            App.ui.showAlert('Erro ao carregar informações do cliente', 'danger');
+        });
+}
+
+function showClientInfo(cliente) {
+    $('#cliente-nome').text(cliente.nome);
+    $('#cliente-telefone').text(cliente.telefone || '-');
+    $('#cliente-limite').text('R$ ' + cliente.limite_credito.toFixed(2));
+    $('#cliente-disponivel').text('R$ ' + cliente.credito_disponivel.toFixed(2));
+    
+    $('#cliente-info').fadeIn();
+    
+    // Show alerts if needed
+    const alertDiv = $('#cliente-alerta');
+    alertDiv.empty().hide();
+    
+    if (!cliente.pode_comprar) {
+        let alertMsg = '';
+        let alertClass = 'alert-danger';
+        
+        if (!cliente.ativo) {
+            alertMsg = '<i class="fas fa-user-slash"></i> Cliente inativo';
+        } else if (cliente.esta_inadimplente) {
+            alertMsg = '<i class="fas fa-exclamation-triangle"></i> Cliente inadimplente';
+        } else if (cliente.credito_disponivel <= 0) {
+            alertMsg = '<i class="fas fa-credit-card"></i> Limite de crédito esgotado';
+        }
+        
+        alertDiv.html(`<small class="text-danger">${alertMsg}</small>`).show();
+    } else if (cliente.credito_disponivel < 100) {
+        alertDiv.html('<small class="text-warning"><i class="fas fa-exclamation-triangle"></i> Crédito baixo</small>').show();
+    }
+    
+    // Update credit check when total changes
+    checkCreditLimit();
+}
+
+function hideClientInfo() {
+    $('#cliente-info').fadeOut();
+}
+
+function adicionarItem() {
+    const template = document.getElementById('item-template');
+    const clone = template.content.cloneNode(true);
+    
+    // Update indices in the cloned template
+    const inputs = clone.querySelectorAll('input');
+    inputs.forEach(input => {
+        if (input.name) {
+            input.name = input.name.replace('INDEX', itemIndex);
+        }
+    });
+    
+    // Update item number
+    clone.querySelector('.item-numero').textContent = itemIndex + 1;
+    
+    // Add to container
+    document.getElementById('itens-container').appendChild(clone);
+    
+    // Hide "no items" message
+    $('#no-items-message').hide();
+    
+    // Apply masks to new inputs
+    App.initMasks();
+    
+    // Add event listeners for calculation
+    const container = $('#itens-container .item-venda').last();
+    container.find('.item-quantidade, .item-valor').on('input', calcularSubtotalItem);
+    container.find('.item-quantidade, .item-valor').on('input', debounce(calcularTotal, 300));
+    
+    // Focus on description field
+    container.find('.item-descricao').focus();
+    
+    itemIndex++;
+    updateItemNumbers();
+}
+
+function removerItem(button) {
+    $(button).closest('.item-venda').fadeOut(300, function() {
+        $(this).remove();
+        updateItemNumbers();
+        calcularTotal();
+        
+        if ($('#itens-container .item-venda').length === 0) {
+            $('#no-items-message').show();
+        }
+    });
+}
+
+function adicionarItemRapido(descricao, quantidade, valor) {
+    adicionarItem();
+    
+    const lastItem = $('#itens-container .item-venda').last();
+    lastItem.find('.item-descricao').val(descricao);
+    lastItem.find('.item-quantidade').val(quantidade.replace('.', ','));
+    lastItem.find('.item-valor').val(valor.replace('.', ','));
+    
+    calcularSubtotalItem.call(lastItem.find('.item-quantidade')[0]);
+    calcularTotal();
+}
+
+function updateItemNumbers() {
+    $('#itens-container .item-venda').each(function(index) {
+        $(this).find('.item-numero').text(index + 1);
+    });
+}
+
+function calcularSubtotalItem() {
+    const item = $(this).closest('.item-venda');
+    const quantidade = App.utils.parseMoney(item.find('.item-quantidade').val() || '0');
+    const valorUnitario = App.utils.parseMoney(item.find('.item-valor').val() || '0');
+    const subtotal = quantidade * valorUnitario;
+    
+    item.find('.item-subtotal').text(App.utils.formatMoney(subtotal));
+}
+
+function calcularTotal() {
+    let total = 0;
+    
+    $('#itens-container .item-venda').each(function() {
+        const quantidade = App.utils.parseMoney($(this).find('.item-quantidade').val() || '0');
+        const valorUnitario = App.utils.parseMoney($(this).find('.item-valor').val() || '0');
+        total += quantidade * valorUnitario;
+    });
+    
+    $('#subtotal-display').text(App.utils.formatMoney(total));
+    $('#total-display').text(App.utils.formatMoney(total));
+    
+    checkCreditLimit(total);
+}
+
+function checkCreditLimit(total = null) {
+    const clienteId = $('#cliente_id').val();
+    if (!clienteId || total === null) {
+        $('#credit-check').hide();
+        return;
+    }
+    
+    // Get total if not provided
+    if (total === null) {
+        total = 0;
+        $('#itens-container .item-venda').each(function() {
+            const quantidade = App.utils.parseMoney($(this).find('.item-quantidade').val() || '0');
+            const valorUnitario = App.utils.parseMoney($(this).find('.item-valor').val() || '0');
+            total += quantidade * valorUnitario;
+        });
+    }
+    
+    if (total > 0) {
+        $.get(`{{ url_for("vendas.api_verificar_limite", cliente_id=0, valor="0") }}`.replace('0/0', `${clienteId}/${total}`))
+            .done(function(data) {
+                const checkDiv = $('#credit-check');
+                
+                if (data.pode_comprar) {
+                    checkDiv.removeClass('alert-danger alert-warning')
+                           .addClass('alert-success')
+                           .html('<i class="fas fa-check"></i> Dentro do limite de crédito')
+                           .show();
+                } else {
+                    checkDiv.removeClass('alert-success alert-warning')
+                           .addClass('alert-danger')
+                           .html(`<i class="fas fa-times"></i> Excede o limite! Disponível: ${data.credito_disponivel_formatado}`)
+                           .show();
+                }
+            });
+    } else {
+        $('#credit-check').hide();
+    }
+}
+
+function validateForm() {
+    let isValid = true;
+    
+    // Validate client
+    if (!$('#cliente_id').val()) {
+        App.ui.showAlert('Selecione um cliente', 'danger');
+        isValid = false;
+    }
+    
+    // Validate items
+    const items = $('#itens-container .item-venda');
+    if (items.length === 0) {
+        App.ui.showAlert('Adicione pelo menos um item', 'danger');
+        isValid = false;
+    }
+    
+    // Validate each item
+    items.each(function(index) {
+        const item = $(this);
+        const descricao = item.find('.item-descricao').val().trim();
+        const quantidade = App.utils.parseMoney(item.find('.item-quantidade').val() || '0');
+        const valor = App.utils.parseMoney(item.find('.item-valor').val() || '0');
+        
+        if (!descricao) {
+            App.ui.showAlert(`Item ${index + 1}: Descrição é obrigatória`, 'danger');
+            isValid = false;
+        }
+        
+        if (quantidade <= 0) {
+            App.ui.showAlert(`Item ${index + 1}: Quantidade deve ser maior que zero`, 'danger');
+            isValid = false;
+        }
+        
+        if (valor <= 0) {
+            App.ui.showAlert(`Item ${index + 1}: Valor deve ser maior que zero`, 'danger');
+            isValid = false;
+        }
+    });
+    
+    return isValid;
+}
+
+function initFormValidation() {
+    $('.needs-validation').on('submit', function(e) {
+        if (!this.checkValidity() || !validateForm()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        $(this).addClass('was-validated');
+    });
+}
+
+function limparFormulario() {
+    if (confirm('Tem certeza que deseja limpar o formulário?')) {
+        $('#vendaForm')[0].reset();
+        $('#cliente_id').val('').trigger('change');
+        $('#itens-container').empty();
+        $('#no-items-message').show();
+        hideClientInfo();
+        itemIndex = 0;
+        calcularTotal();
+    }
+}
+
+// Utility function for debouncing
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Keyboard shortcuts
+$(document).on('keydown', function(e) {
+    // Alt + I to add item
+    if (e.altKey && e.keyCode === 73) {
+        e.preventDefault();
+        adicionarItem();
+    }
+    
+    // Alt + S to submit (if form is valid)
+    if (e.altKey && e.keyCode === 83) {
+        e.preventDefault();
+        if (validateForm()) {
+            $('#vendaForm').submit();
+        }
+    }
+});
+</script>
+{% endblock %}

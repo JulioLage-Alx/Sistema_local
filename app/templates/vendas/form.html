@@ -1,0 +1,878 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Venda #{{ venda.id }} - Sistema Crediário Açougue{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-edit text-primary"></i>
+                        Editar Venda #{{ venda.id }}
+                    </h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('vendas.index') }}">Vendas</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('vendas.view', id=venda.id) }}">Venda #{{ venda.id }}</a>
+                            </li>
+                            <li class="breadcrumb-item active">Editar</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <a href="{{ url_for('vendas.view', id=venda.id) }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="d-none d-md-inline">Voltar</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Restrictions Alert -->
+    {% if venda.status == 'paga' %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <h6 class="alert-heading">
+                    <i class="fas fa-lock"></i>
+                    Venda Paga - Edição Restrita
+                </h6>
+                <p class="mb-0">
+                    Vendas já pagas não podem ser editadas para manter a integridade financeira.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% elif venda.eh_restante %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6 class="alert-heading">
+                    <i class="fas fa-info-circle"></i>
+                    Venda de Restante - Edição Não Permitida
+                </h6>
+                <p class="mb-0">
+                    Vendas de saldo restante são geradas automaticamente e não podem ser editadas.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% elif venda.pagamentos.count() > 0 %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <h6 class="alert-heading">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Venda com Pagamentos - Edição Limitada
+                </h6>
+                <p class="mb-0">
+                    Esta venda já recebeu pagamentos. Apenas dados básicos podem ser alterados.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Form -->
+    <form method="POST" class="needs-validation" novalidate id="vendaForm">
+        
+        <div class="row">
+            
+            <!-- Form Column -->
+            <div class="col-xl-8 col-lg-7">
+                
+                <!-- Client Information (Read-only) -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-user"></i>
+                            Cliente (Não Editável)
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div class="d-flex align-items-center">
+                            <div class="mr-3">
+                                <div class="icon-circle bg-{{ 'success' if venda.cliente.ativo else 'secondary' }}">
+                                    <i class="fas fa-user text-white"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5 class="mb-1">{{ venda.cliente.nome }}</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        {% if venda.cliente.cpf %}
+                                        <small class="text-muted">
+                                            <i class="fas fa-id-card"></i> {{ venda.cliente.cpf }}
+                                        </small><br>
+                                        {% endif %}
+                                        {% if venda.cliente.telefone %}
+                                        <small class="text-muted">
+                                            <i class="fas fa-phone"></i> {{ venda.cliente.telefone }}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="text-muted">
+                                            <i class="fas fa-credit-card"></i> 
+                                            Limite: R$ {{ "%.2f"|format(venda.cliente.limite_credito) }}
+                                        </small><br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-balance-scale"></i> 
+                                            Disponível: R$ {{ "%.2f"|format(venda.cliente.credito_disponivel + venda.total) }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <a href="{{ url_for('clientes.view', id=venda.cliente.id) }}" 
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye"></i>
+                                    Ver Cliente
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden field for client ID -->
+                        <input type="hidden" name="cliente_id" value="{{ venda.cliente.id }}">
+                        
+                    </div>
+                </div>
+                
+                <!-- Sale Details -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-calendar"></i>
+                            Dados da Venda
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="data_venda" class="form-label required">
+                                        Data da Venda
+                                    </label>
+                                    <input type="date" 
+                                           class="form-control" 
+                                           id="data_venda" 
+                                           name="data_venda" 
+                                           value="{{ venda.data_venda.isoformat() }}"
+                                           required>
+                                    <div class="invalid-feedback">
+                                        Data da venda é obrigatória.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="data_vencimento" class="form-label required">
+                                        Data de Vencimento
+                                    </label>
+                                    <input type="date" 
+                                           class="form-control" 
+                                           id="data_vencimento" 
+                                           name="data_vencimento"
+                                           value="{{ venda.data_vencimento.isoformat() }}"
+                                           required>
+                                    <div class="invalid-feedback">
+                                        Data de vencimento é obrigatória.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="observacoes" class="form-label">
+                                Observações
+                            </label>
+                            <textarea class="form-control" 
+                                      id="observacoes" 
+                                      name="observacoes" 
+                                      rows="3"
+                                      placeholder="Observações sobre a venda (opcional)"
+                                      maxlength="500">{{ venda.observacoes or '' }}</textarea>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- Items -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-list"></i>
+                            Itens da Venda
+                        </h6>
+                        <button type="button" class="btn btn-success btn-sm" onclick="adicionarItem()">
+                            <i class="fas fa-plus"></i>
+                            Adicionar Item
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div id="itens-container">
+                            {% for item in venda.itens %}
+                            <div class="item-venda border rounded p-3 mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0">
+                                        <span class="badge badge-secondary item-numero">{{ loop.index }}</span>
+                                        Item
+                                    </h6>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerItem(this)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-12 mb-3">
+                                        <label class="form-label required">Descrição</label>
+                                        <input type="text" 
+                                               class="form-control item-descricao" 
+                                               name="item_{{ loop.index0 }}_descricao" 
+                                               placeholder="Ex: Carne moída, Frango inteiro, etc."
+                                               value="{{ item.descricao }}"
+                                               required>
+                                    </div>
+                                    
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label required">Quantidade</label>
+                                        <input type="text" 
+                                               class="form-control mask-quantity item-quantidade" 
+                                               name="item_{{ loop.index0 }}_quantidade" 
+                                               placeholder="1,000"
+                                               value="{{ ('%.3f'|format(item.quantidade)).replace('.', ',') }}"
+                                               required>
+                                    </div>
+                                    
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label required">Valor Unit.</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">R$</span>
+                                            </div>
+                                            <input type="text" 
+                                                   class="form-control mask-money item-valor" 
+                                                   name="item_{{ loop.index0 }}_valor_unitario" 
+                                                   placeholder="0,00"
+                                                   value="{{ ('%.2f'|format(item.valor_unitario)).replace('.', ',') }}"
+                                                   required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Subtotal</label>
+                                        <div class="form-control-plaintext item-subtotal font-weight-bold">
+                                            R$ {{ "%.2f"|format(item.subtotal) }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="text-center" id="no-items-message" style="{{ 'display: none;' if venda.itens.count() > 0 else '' }}">
+                            <i class="fas fa-box-open fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">Nenhum item adicionado.</p>
+                            <button type="button" class="btn btn-primary" onclick="adicionarItem()">
+                                <i class="fas fa-plus"></i>
+                                Adicionar Primeiro Item
+                            </button>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- Form Actions -->
+                <div class="card shadow">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                {% if venda.status != 'paga' and not venda.eh_restante and venda.pagamentos.count() == 0 %}
+                                <button type="button" 
+                                        class="btn btn-outline-danger" 
+                                        data-toggle="modal" 
+                                        data-target="#deleteModal">
+                                    <i class="fas fa-trash"></i>
+                                    Excluir Venda
+                                </button>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <a href="{{ url_for('vendas.view', id=venda.id) }}" class="btn btn-outline-secondary mr-2">
+                                    <i class="fas fa-times"></i>
+                                    Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-primary" id="submitBtn">
+                                    <i class="fas fa-save"></i>
+                                    Salvar Alterações
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+            
+            <!-- Summary Column -->
+            <div class="col-xl-4 col-lg-5">
+                
+                <!-- Total Summary -->
+                <div class="card shadow mb-4 sticky-top" style="top: 20px;">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-success">
+                            <i class="fas fa-calculator"></i>
+                            Resumo da Venda
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div class="summary-item">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Subtotal:</span>
+                                <span id="subtotal-display" class="font-weight-bold">R$ {{ "%.2f"|format(venda.subtotal) }}</span>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="summary-item">
+                            <div class="d-flex justify-content-between mb-3">
+                                <span class="h6">Total:</span>
+                                <span id="total-display" class="h5 font-weight-bold text-success">R$ {{ "%.2f"|format(venda.total) }}</span>
+                            </div>
+                        </div>
+                        
+                        <div id="credit-check" class="alert" style="display: none;">
+                            <!-- Credit limit check will be displayed here -->
+                        </div>
+                        
+                        {% if venda.valor_pago > 0 %}
+                        <div class="alert alert-warning">
+                            <small>
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Atenção:</strong> Esta venda já recebeu R$ {{ "%.2f"|format(venda.valor_pago) }} em pagamentos.
+                                Alterações podem afetar o saldo.
+                            </small>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="text-center">
+                            <small class="text-muted">
+                                Total atualizado automaticamente
+                            </small>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- Sale Information -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-info-circle"></i>
+                            Informações da Venda
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div class="row mb-3">
+                            <div class="col-5 text-muted">ID:</div>
+                            <div class="col-7 font-weight-bold">#{{ venda.id }}</div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-5 text-muted">Status:</div>
+                            <div class="col-7">
+                                <span class="badge badge-{{ venda.status_color }}">
+                                    {{ venda.status_display }}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-5 text-muted">Criada em:</div>
+                            <div class="col-7">{{ venda.data_criacao.strftime('%d/%m/%Y %H:%M') }}</div>
+                        </div>
+                        
+                        {% if venda.pagamentos.count() > 0 %}
+                        <div class="row mb-3">
+                            <div class="col-5 text-muted">Pagamentos:</div>
+                            <div class="col-7">{{ venda.pagamentos.count() }}</div>
+                        </div>
+                        {% endif %}
+                        
+                        <hr>
+                        
+                        <div class="text-center">
+                            <a href="{{ url_for('vendas.view', id=venda.id) }}" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye"></i>
+                                Ver Detalhes Completos
+                            </a>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+            </div>
+            
+        </div>
+        
+    </form>
+    
+</div>
+
+<!-- Item Template (hidden) -->
+<template id="item-template">
+    <div class="item-venda border rounded p-3 mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">
+                <span class="badge badge-secondary item-numero">1</span>
+                Item
+            </h6>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerItem(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        
+        <div class="row">
+            <div class="col-12 mb-3">
+                <label class="form-label required">Descrição</label>
+                <input type="text" 
+                       class="form-control item-descricao" 
+                       name="item_INDEX_descricao" 
+                       placeholder="Ex: Carne moída, Frango inteiro, etc."
+                       required>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <label class="form-label required">Quantidade</label>
+                <input type="text" 
+                       class="form-control mask-quantity item-quantidade" 
+                       name="item_INDEX_quantidade" 
+                       placeholder="1,000"
+                       required>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <label class="form-label required">Valor Unit.</label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">R$</span>
+                    </div>
+                    <input type="text" 
+                           class="form-control mask-money item-valor" 
+                           name="item_INDEX_valor_unitario" 
+                           placeholder="0,00"
+                           required>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Subtotal</label>
+                <div class="form-control-plaintext item-subtotal font-weight-bold">R$ 0,00</div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Delete Modal -->
+{% if venda.status != 'paga' and not venda.eh_restante and venda.pagamentos.count() == 0 %}
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-danger"></i>
+                    Confirmar Exclusão
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir a venda <strong>#{{ venda.id }}</strong>?</p>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Esta ação não pode ser desfeita!</strong>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <form method="POST" action="{{ url_for('vendas.delete', id=venda.id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Confirmar Exclusão
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.required::after {
+    content: " *";
+    color: red;
+}
+
+.item-venda {
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.item-venda:hover {
+    background-color: #e9ecef;
+}
+
+.sticky-top {
+    position: sticky;
+    top: 20px;
+    z-index: 1020;
+}
+
+.summary-item {
+    font-size: 1.1rem;
+}
+
+.form-control-plaintext {
+    background-color: #fff;
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.icon-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 1200px) {
+    .sticky-top {
+        position: relative;
+        top: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .item-venda .row {
+        margin: 0;
+    }
+    
+    .item-venda .col-md-4 {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+}
+
+/* Loading state */
+.btn-loading {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.btn-loading .fas {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/vendas.js') }}"></script>
+<script>
+let itemIndex = {{ venda.itens.count() }};
+const vendaOriginalTotal = {{ venda.total }};
+const vendaId = {{ venda.id }};
+
+$(document).ready(function() {
+    // Initialize form validation
+    initFormValidation();
+    
+    // Initialize existing items
+    initExistingItems();
+    
+    // Calculate initial total
+    calcularTotal();
+    
+    // Date validation
+    $('#data_venda, #data_vencimento').on('change', validateDates);
+    
+    // Form submission handling
+    $('#vendaForm').on('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Check if total changed significantly
+        const currentTotal = calcularTotal();
+        const difference = Math.abs(currentTotal - vendaOriginalTotal);
+        
+        {% if venda.valor_pago > 0 %}
+        if (difference > 0.01) {
+            if (!confirm('O total da venda foi alterado. Isso pode afetar os pagamentos já recebidos. Continuar?')) {
+                e.preventDefault();
+                return false;
+            }
+        }
+        {% endif %}
+        
+        // Add loading state
+        $('#submitBtn').addClass('btn-loading');
+    });
+    
+    // Warning for users about existing payments
+    {% if venda.valor_pago > 0 %}
+    App.ui.showAlert(
+        'Esta venda já recebeu pagamentos. Tenha cuidado ao alterar valores.', 
+        'warning'
+    );
+    {% endif %}
+});
+
+function initExistingItems() {
+    // Add event listeners to existing items
+    $('.item-venda').each(function() {
+        const item = $(this);
+        item.find('.item-quantidade, .item-valor').on('input', calcularSubtotalItem);
+        item.find('.item-quantidade, .item-valor').on('input', debounce(calcularTotal, 300));
+    });
+}
+
+function validateDates() {
+    const dataVenda = new Date($('#data_venda').val());
+    const dataVencimento = new Date($('#data_vencimento').val());
+    
+    if (dataVencimento < dataVenda) {
+        $('#data_vencimento').addClass('is-invalid');
+        App.ui.showAlert('Data de vencimento não pode ser anterior à data da venda', 'danger');
+        return false;
+    } else {
+        $('#data_vencimento').removeClass('is-invalid');
+        return true;
+    }
+}
+
+function adicionarItem() {
+    const template = document.getElementById('item-template');
+    const clone = template.content.cloneNode(true);
+    
+    // Update indices in the cloned template
+    const inputs = clone.querySelectorAll('input');
+    inputs.forEach(input => {
+        if (input.name) {
+            input.name = input.name.replace('INDEX', itemIndex);
+        }
+    });
+    
+    // Update item number
+    clone.querySelector('.item-numero').textContent = itemIndex + 1;
+    
+    // Add to container
+    document.getElementById('itens-container').appendChild(clone);
+    
+    // Hide "no items" message
+    $('#no-items-message').hide();
+    
+    // Apply masks to new inputs
+    App.initMasks();
+    
+    // Add event listeners for calculation
+    const container = $('#itens-container .item-venda').last();
+    container.find('.item-quantidade, .item-valor').on('input', calcularSubtotalItem);
+    container.find('.item-quantidade, .item-valor').on('input', debounce(calcularTotal, 300));
+    
+    // Focus on description field
+    container.find('.item-descricao').focus();
+    
+    itemIndex++;
+    updateItemNumbers();
+}
+
+function removerItem(button) {
+    $(button).closest('.item-venda').fadeOut(300, function() {
+        $(this).remove();
+        updateItemNumbers();
+        calcularTotal();
+        
+        if ($('#itens-container .item-venda').length === 0) {
+            $('#no-items-message').show();
+        }
+    });
+}
+
+function updateItemNumbers() {
+    $('#itens-container .item-venda').each(function(index) {
+        $(this).find('.item-numero').text(index + 1);
+    });
+}
+
+function calcularSubtotalItem() {
+    const item = $(this).closest('.item-venda');
+    const quantidade = App.utils.parseMoney(item.find('.item-quantidade').val() || '0');
+    const valorUnitario = App.utils.parseMoney(item.find('.item-valor').val() || '0');
+    const subtotal = quantidade * valorUnitario;
+    
+    item.find('.item-subtotal').text(App.utils.formatMoney(subtotal));
+    
+    return subtotal;
+}
+
+function calcularTotal() {
+    let total = 0;
+    
+    $('#itens-container .item-venda').each(function() {
+        const quantidade = App.utils.parseMoney($(this).find('.item-quantidade').val() || '0');
+        const valorUnitario = App.utils.parseMoney($(this).find('.item-valor').val() || '0');
+        total += quantidade * valorUnitario;
+    });
+    
+    $('#subtotal-display').text(App.utils.formatMoney(total));
+    $('#total-display').text(App.utils.formatMoney(total));
+    
+    checkCreditLimit(total);
+    
+    return total;
+}
+
+function checkCreditLimit(total) {
+    const clienteCredito = {{ venda.cliente.credito_disponivel + venda.total }};
+    const checkDiv = $('#credit-check');
+    
+    if (total > clienteCredito) {
+        const excesso = total - clienteCredito;
+        checkDiv.removeClass('alert-success')
+               .addClass('alert-danger')
+               .html(`<i class="fas fa-times"></i> Excede em ${App.utils.formatMoney(excesso)} o limite disponível`)
+               .show();
+    } else if (total > clienteCredito * 0.8) {
+        checkDiv.removeClass('alert-danger')
+               .addClass('alert-warning')
+               .html(`<i class="fas fa-exclamation-triangle"></i> Próximo do limite de crédito`)
+               .show();
+    } else {
+        checkDiv.removeClass('alert-danger alert-warning')
+               .addClass('alert-success')
+               .html(`<i class="fas fa-check"></i> Dentro do limite de crédito`)
+               .show();
+    }
+}
+
+function validateForm() {
+    let isValid = true;
+    
+    // Validate dates
+    if (!validateDates()) {
+        isValid = false;
+    }
+    
+    // Validate items
+    const items = $('#itens-container .item-venda');
+    if (items.length === 0) {
+        App.ui.showAlert('Adicione pelo menos um item', 'danger');
+        isValid = false;
+    }
+    
+    // Validate each item
+    items.each(function(index) {
+        const item = $(this);
+        const descricao = item.find('.item-descricao').val().trim();
+        const quantidade = App.utils.parseMoney(item.find('.item-quantidade').val() || '0');
+        const valor = App.utils.parseMoney(item.find('.item-valor').val() || '0');
+        
+        if (!descricao) {
+            App.ui.showAlert(`Item ${index + 1}: Descrição é obrigatória`, 'danger');
+            isValid = false;
+        }
+        
+        if (quantidade <= 0) {
+            App.ui.showAlert(`Item ${index + 1}: Quantidade deve ser maior que zero`, 'danger');
+            isValid = false;
+        }
+        
+        if (valor <= 0) {
+            App.ui.showAlert(`Item ${index + 1}: Valor deve ser maior que zero`, 'danger');
+            isValid = false;
+        }
+    });
+    
+    // Validate credit limit
+    const total = calcularTotal();
+    const clienteCredito = {{ venda.cliente.credito_disponivel + venda.total }};
+    
+    if (total > clienteCredito) {
+        App.ui.showAlert('Venda excede o limite de crédito disponível', 'danger');
+        isValid = false;
+    }
+    
+    return isValid;
+}
+
+function initFormValidation() {
+    $('.needs-validation').on('submit', function(e) {
+        if (!this.checkValidity() || !validateForm()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        $(this).addClass('was-validated');
+    });
+}
+
+// Utility function for debouncing
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Keyboard shortcuts
+$(document).on('keydown', function(e) {
+    // Alt + I to add item
+    if (e.altKey && e.keyCode === 73) {
+        e.preventDefault();
+        adicionarItem();
+    }
+    
+    // Ctrl + S to save
+    if ((e.ctrlKey || e.metaKey) && e.keyCode === 83) {
+        e.preventDefault();
+        if (validateForm()) {
+            $('#vendaForm').submit();
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,800 @@
+{% extends "base.html" %}
+
+{% block title %}Venda #{{ venda.id }} - Sistema Crediário Açougue{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-shopping-cart text-primary"></i>
+                        Venda #{{ venda.id }}
+                        <span class="badge badge-{{ venda.status_color }} ml-2">{{ venda.status_display }}</span>
+                        {% if venda.eh_restante %}
+                        <span class="badge badge-info ml-1" data-toggle="tooltip" title="Venda de saldo restante">
+                            <i class="fas fa-info"></i> Restante
+                        </span>
+                        {% endif %}
+                        {% if venda.esta_vencida and venda.status == 'aberta' %}
+                        <span class="badge badge-danger ml-1">Vencida</span>
+                        {% endif %}
+                    </h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('vendas.index') }}">Vendas</a>
+                            </li>
+                            <li class="breadcrumb-item active">Venda #{{ venda.id }}</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <div class="btn-group" role="group">
+                        {% if venda.status == 'aberta' %}
+                        <a href="{{ url_for('pagamentos.create', venda_id=venda.id) }}" 
+                           class="btn btn-success">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span class="d-none d-md-inline">Registrar Pagamento</span>
+                        </a>
+                        {% endif %}
+                        
+                        {% if venda.status != 'paga' and not venda.eh_restante and venda.pagamentos.count() == 0 %}
+                        <a href="{{ url_for('vendas.edit', id=venda.id) }}" 
+                           class="btn btn-primary">
+                            <i class="fas fa-edit"></i>
+                            <span class="d-none d-md-inline">Editar</span>
+                        </a>
+                        {% endif %}
+                        
+                        <button type="button" 
+                                class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" 
+                                data-toggle="dropdown">
+                            <span class="sr-only">Toggle Dropdown</span>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="#" onclick="imprimirVenda()">
+                                <i class="fas fa-print"></i> Imprimir Venda
+                            </a>
+                            {% if venda.status == 'paga' %}
+                            <a class="dropdown-item" href="#" onclick="reimprimirComprovante()">
+                                <i class="fas fa-receipt"></i> Reimprimir Comprovante
+                            </a>
+                            {% endif %}
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="{{ url_for('clientes.view', id=venda.cliente.id) }}">
+                                <i class="fas fa-user"></i> Ver Cliente
+                            </a>
+                            {% if venda.status != 'paga' and not venda.eh_restante and venda.pagamentos.count() == 0 %}
+                            <div class="dropdown-divider"></div>
+                            <button type="button" 
+                                    class="dropdown-item text-danger" 
+                                    data-toggle="modal" 
+                                    data-target="#deleteModal">
+                                <i class="fas fa-trash"></i> Excluir Venda
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sale Info Alert (for special cases) -->
+    {% if venda.eh_restante and info_restante %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="alert-heading mb-1">
+                            <i class="fas fa-info-circle"></i>
+                            Esta é uma nota de saldo restante
+                        </h6>
+                        <p class="mb-0">
+                            Gerada em {{ info_restante.data_pagamento.strftime('%d/%m/%Y') }} 
+                            a partir do pagamento parcial das notas: 
+                            {% for nota_id in info_restante.notas_ids %}
+                                <a href="{{ url_for('vendas.view', id=nota_id) }}" class="alert-link">#{{ nota_id }}</a>{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </p>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-info" 
+                                data-toggle="modal" 
+                                data-target="#detalhesRestanteModal">
+                            <i class="fas fa-eye"></i> Ver Detalhes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Overdue Alert -->
+    {% if venda.esta_vencida and venda.status == 'aberta' %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-danger">
+                <h6 class="alert-heading">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Venda Vencida
+                </h6>
+                <p class="mb-0">
+                    Esta venda está vencida há <strong>{{ venda.dias_atraso }} dia(s)</strong>.
+                    Data de vencimento: {{ venda.data_vencimento.strftime('%d/%m/%Y') }}
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="row">
+        
+        <!-- Sale Details Column -->
+        <div class="col-xl-8 col-lg-7">
+            
+            <!-- Sale Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-info-circle"></i>
+                        Informações da Venda
+                    </h6>
+                </div>
+                <div class="card-body">
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="row mb-3">
+                                <div class="col-4 text-muted">
+                                    <i class="fas fa-hashtag fa-fw"></i> ID:
+                                </div>
+                                <div class="col-8 font-weight-bold">
+                                    #{{ venda.id }}
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-4 text-muted">
+                                    <i class="fas fa-calendar fa-fw"></i> Data:
+                                </div>
+                                <div class="col-8">
+                                    {{ venda.data_venda.strftime('%d/%m/%Y') }}
+                                    <small class="text-muted">
+                                        ({{ venda.data_criacao.strftime('%H:%M') }})
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-4 text-muted">
+                                    <i class="fas fa-clock fa-fw"></i> Vencimento:
+                                </div>
+                                <div class="col-8">
+                                    {{ venda.data_vencimento.strftime('%d/%m/%Y') }}
+                                    {% if venda.esta_vencida and venda.status == 'aberta' %}
+                                    <br><small class="text-danger">
+                                        {{ venda.dias_atraso }} dia(s) em atraso
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="row mb-3">
+                                <div class="col-4 text-muted">
+                                    <i class="fas fa-flag fa-fw"></i> Status:
+                                </div>
+                                <div class="col-8">
+                                    <span class="badge badge-{{ venda.status_color }} badge-lg">
+                                        {{ venda.status_display }}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            {% if venda.data_pagamento %}
+                            <div class="row mb-3">
+                                <div class="col-4 text-muted">
+                                    <i class="fas fa-check fa-fw"></i> Quitada em:
+                                </div>
+                                <div class="col-8 text-success font-weight-bold">
+                                    {{ venda.data_pagamento.strftime('%d/%m/%Y') }}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if venda.observacoes %}
+                            <div class="row mb-3">
+                                <div class="col-4 text-muted">
+                                    <i class="fas fa-sticky-note fa-fw"></i> Observações:
+                                </div>
+                                <div class="col-8">
+                                    {{ venda.observacoes }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <!-- Customer Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-user"></i>
+                        Cliente
+                    </h6>
+                </div>
+                <div class="card-body">
+                    
+                    <div class="d-flex align-items-center">
+                        <div class="mr-3">
+                            <div class="icon-circle bg-{{ 'success' if venda.cliente.ativo else 'secondary' }}">
+                                <i class="fas fa-user text-white"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="mb-1">
+                                <a href="{{ url_for('clientes.view', id=venda.cliente.id) }}" 
+                                   class="text-decoration-none">
+                                    {{ venda.cliente.nome }}
+                                </a>
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {% if venda.cliente.cpf %}
+                                    <small class="text-muted">
+                                        <i class="fas fa-id-card"></i> {{ venda.cliente.cpf }}
+                                    </small><br>
+                                    {% endif %}
+                                    {% if venda.cliente.telefone %}
+                                    <small class="text-muted">
+                                        <i class="fas fa-phone"></i> 
+                                        <a href="tel:{{ venda.cliente.telefone }}">{{ venda.cliente.telefone }}</a>
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        <i class="fas fa-credit-card"></i> 
+                                        Limite: R$ {{ "%.2f"|format(venda.cliente.limite_credito) }}
+                                    </small><br>
+                                    <small class="text-muted">
+                                        <i class="fas fa-balance-scale"></i> 
+                                        Em aberto: R$ {{ "%.2f"|format(venda.cliente.valor_total_em_aberto) }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('clientes.view', id=venda.cliente.id) }}" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye"></i>
+                                Ver Perfil
+                            </a>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <!-- Items -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-list"></i>
+                        Itens da Venda ({{ venda.itens.count() }})
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th width="5%">#</th>
+                                    <th width="40%">Descrição</th>
+                                    <th width="15%">Quantidade</th>
+                                    <th width="20%">Valor Unitário</th>
+                                    <th width="20%">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in venda.itens %}
+                                <tr>
+                                    <td class="text-center">
+                                        <span class="badge badge-secondary">{{ loop.index }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="font-weight-bold">{{ item.descricao }}</div>
+                                    </td>
+                                    <td>
+                                        {{ item.quantidade_formatada }}
+                                    </td>
+                                    <td>
+                                        {{ item.valor_unitario_formatado }}
+                                    </td>
+                                    <td class="font-weight-bold">
+                                        {{ item.subtotal_formatado }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="bg-light">
+                                <tr>
+                                    <th colspan="4" class="text-right">Total:</th>
+                                    <th class="font-weight-bold text-success">
+                                        R$ {{ "%.2f"|format(venda.total) }}
+                                    </th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <!-- Payment History -->
+            {% if pagamentos %}
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-money-bill-wave"></i>
+                        Histórico de Pagamentos ({{ pagamentos|length }})
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Valor</th>
+                                    <th>Forma</th>
+                                    <th>Detalhes</th>
+                                    <th>Observações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pagamento in pagamentos %}
+                                <tr>
+                                    <td>{{ pagamento.data_pagamento.strftime('%d/%m/%Y') }}</td>
+                                    <td class="font-weight-bold text-success">
+                                        {{ pagamento.valor_formatado }}
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-info">
+                                            {{ pagamento.forma_pagamento_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if pagamento.eh_dinheiro and pagamento.valor_recebido %}
+                                        <small class="text-muted">
+                                            Recebido: {{ pagamento.valor_recebido_formatado }}<br>
+                                            {% if pagamento.troco > 0 %}
+                                            Troco: {{ pagamento.troco_formatado }}
+                                            {% else %}
+                                            Sem troco
+                                            {% endif %}
+                                        </small>
+                                        {% else %}
+                                        <small class="text-muted">-</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ pagamento.observacoes or '-' }}
+                                        </small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                </div>
+            </div>
+            {% endif %}
+            
+        </div>
+        
+        <!-- Summary Column -->
+        <div class="col-xl-4 col-lg-5">
+            
+            <!-- Financial Summary -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-calculator"></i>
+                        Resumo Financeiro
+                    </h6>
+                </div>
+                <div class="card-body">
+                    
+                    <div class="summary-item mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Valor Total:</span>
+                            <span class="h5 font-weight-bold">R$ {{ "%.2f"|format(venda.total) }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if venda.valor_pago > 0 %}
+                    <div class="summary-item mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Valor Pago:</span>
+                            <span class="font-weight-bold text-success">R$ {{ "%.2f"|format(venda.valor_pago) }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if venda.valor_restante > 0 %}
+                    <div class="summary-item mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Valor Restante:</span>
+                            <span class="font-weight-bold text-{{ 'danger' if venda.esta_vencida else 'warning' }}">
+                                R$ {{ "%.2f"|format(venda.valor_restante) }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Progress -->
+                    <div class="progress mb-3">
+                        {% set progress = (venda.valor_pago / venda.total * 100) if venda.total > 0 else 0 %}
+                        <div class="progress-bar bg-success" 
+                             style="width: {{ progress }}%"
+                             aria-valuenow="{{ progress }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            {{ "%.1f"|format(progress) }}%
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="text-center">
+                        {% if venda.status == 'paga' %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i>
+                            <strong>Venda Quitada</strong>
+                        </div>
+                        {% elif venda.status == 'aberta' %}
+                        <a href="{{ url_for('pagamentos.create', venda_id=venda.id) }}" 
+                           class="btn btn-success btn-block">
+                            <i class="fas fa-money-bill-wave"></i>
+                            Registrar Pagamento
+                        </a>
+                        {% endif %}
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-bolt"></i>
+                        Ações Rápidas
+                    </h6>
+                </div>
+                <div class="card-body">
+                    
+                    <div class="mb-3">
+                        <a href="{{ url_for('vendas.create', cliente_id=venda.cliente.id) }}" 
+                           class="btn btn-outline-success btn-block">
+                            <i class="fas fa-plus"></i>
+                            Nova Venda para Este Cliente
+                        </a>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <a href="{{ url_for('vendas.index', cliente_id=venda.cliente.id) }}" 
+                           class="btn btn-outline-primary btn-block">
+                            <i class="fas fa-list"></i>
+                            Outras Vendas do Cliente
+                        </a>
+                    </div>
+                    
+                    {% if venda.cliente.vendas_em_aberto.count() > 1 %}
+                    <div class="mb-3">
+                        <a href="{{ url_for('pagamentos.multiplo', cliente_id=venda.cliente.id) }}" 
+                           class="btn btn-outline-warning btn-block">
+                            <i class="fas fa-layer-group"></i>
+                            Pagamento Múltiplo
+                        </a>
+                    </div>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <small class="text-muted">
+                            Venda criada em {{ venda.data_criacao.strftime('%d/%m/%Y às %H:%M') }}
+                        </small>
+                    </div>
+                    
+                </div>
+            </div>
+            
+        </div>
+        
+    </div>
+    
+</div>
+
+<!-- Delete Modal -->
+{% if venda.status != 'paga' and not venda.eh_restante and venda.pagamentos.count() == 0 %}
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-danger"></i>
+                    Confirmar Exclusão
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir a venda <strong>#{{ venda.id }}</strong>?</p>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Esta ação não pode ser desfeita!</strong>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <form method="POST" action="{{ url_for('vendas.delete', id=venda.id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Confirmar Exclusão
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal Detalhes Restante -->
+{% if venda.eh_restante and info_restante %}
+<div class="modal fade" id="detalhesRestanteModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle text-info"></i>
+                    Detalhes do Saldo Restante
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <h6>Pagamento Múltiplo Realizado:</h6>
+                <p><strong>Data:</strong> {{ info_restante.data_pagamento.strftime('%d/%m/%Y') }}</p>
+                <p><strong>Total das Notas:</strong> R$ {{ "%.2f"|format(info_restante.valor_total_notas) }}</p>
+                <p><strong>Valor Pago:</strong> R$ {{ "%.2f"|format(info_restante.valor_pago) }}</p>
+                <p><strong>Saldo Restante:</strong> R$ {{ "%.2f"|format(venda.total) }}</p>
+                
+                <h6 class="mt-4">Notas que Geraram este Restante:</h6>
+                <div class="list-group">
+                    {% for nota_id in info_restante.notas_ids %}
+                    <a href="{{ url_for('vendas.view', id=nota_id) }}" 
+                       class="list-group-item list-group-item-action">
+                        <i class="fas fa-receipt"></i> Venda #{{ nota_id }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.badge-lg {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.icon-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.summary-item {
+    font-size: 1.1rem;
+}
+
+.progress {
+    height: 20px;
+}
+
+.alert-sm {
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.table th, .table td {
+    border-top: 1px solid #e3e6f0;
+}
+
+.table thead th {
+    border-bottom: 2px solid #e3e6f0;
+}
+
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.5rem;
+    }
+}
+
+@media print {
+    .btn,
+    .dropdown,
+    .card-header .btn,
+    .breadcrumb {
+        display: none !important;
+    }
+    
+    .card {
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa !important;
+        border-bottom: 1px solid #000 !important;
+    }
+    
+    .table {
+        border: 1px solid #000 !important;
+    }
+    
+    .table th,
+    .table td {
+        border: 1px solid #000 !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+    
+    // Auto-refresh payment status every 30 seconds if sale is open
+    {% if venda.status == 'aberta' %}
+    setInterval(function() {
+        // Check for new payments
+        checkForUpdates();
+    }, 30000);
+    {% endif %}
+});
+
+function imprimirVenda() {
+    window.print();
+}
+
+function reimprimirComprovante() {
+    // TODO: Implement receipt reprint
+    App.ui.showToast('Enviando para impressora...', 'info');
+    
+    // Simulate print request
+    setTimeout(() => {
+        App.ui.showToast('Comprovante enviado para impressora', 'success');
+    }, 2000);
+}
+
+function checkForUpdates() {
+    // Optional: Check for payment updates via AJAX
+    // This could be useful in multi-user scenarios
+    console.log('Checking for payment updates...');
+}
+
+// Keyboard shortcuts
+$(document).on('keydown', function(e) {
+    // Alt + P for payment
+    if (e.altKey && e.keyCode === 80) {
+        e.preventDefault();
+        {% if venda.status == 'aberta' %}
+        window.location.href = "{{ url_for('pagamentos.create', venda_id=venda.id) }}";
+        {% endif %}
+    }
+    
+    // Alt + E for edit
+    if (e.altKey && e.keyCode === 69) {
+        e.preventDefault();
+        {% if venda.status != 'paga' and not venda.eh_restante and venda.pagamentos.count() == 0 %}
+        window.location.href = "{{ url_for('vendas.edit', id=venda.id) }}";
+        {% endif %}
+    }
+    
+    // Alt + C for customer
+    if (e.altKey && e.keyCode === 67) {
+        e.preventDefault();
+        window.location.href = "{{ url_for('clientes.view', id=venda.cliente.id) }}";
+    }
+    
+    // Ctrl + P for print
+    if ((e.ctrlKey || e.metaKey) && e.keyCode === 80) {
+        e.preventDefault();
+        imprimirVenda();
+    }
+});
+
+// Payment status indicators
+function updatePaymentStatus() {
+    {% if venda.status == 'aberta' %}
+    const progress = {{ (venda.valor_pago / venda.total * 100) if venda.total > 0 else 0 }};
+    if (progress > 0) {
+        $('.progress-bar').addClass('progress-bar-animated');
+    }
+    {% endif %}
+}
+
+updatePaymentStatus();
+
+// Visual feedback for overdue sales
+{% if venda.esta_vencida and venda.status == 'aberta' %}
+$('.badge-danger').addClass('pulse-animation');
+
+const style = document.createElement('style');
+style.textContent = `
+    .pulse-animation {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+`;
+document.head.appendChild(style);
+{% endif %}
+</script>
+{% endblock %}
