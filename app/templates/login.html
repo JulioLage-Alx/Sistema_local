@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Sistema Crediário Açougue{% endblock %}
+
+{% block body_class %}bg-primary{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="container">
+        <div class="row justify-content-center min-vh-100 align-items-center">
+            <div class="col-md-6 col-lg-5 col-xl-4">
+                
+                <!-- Login Card -->
+                <div class="card shadow-lg border-0">
+                    <div class="card-body p-5">
+                        
+                        <!-- Logo/Header -->
+                        <div class="text-center mb-4">
+                            <div class="login-logo mb-3">
+                                <i class="fas fa-store fa-3x text-primary"></i>
+                            </div>
+                            <h3 class="card-title font-weight-bold text-dark">
+                                Sistema Açougue
+                            </h3>
+                            <p class="text-muted mb-0">
+                                Gestão de Crediário
+                            </p>
+                        </div>
+                        
+                        <!-- Login Form -->
+                        <form method="POST" id="loginForm" novalidate>
+                            
+                            <!-- Username -->
+                            <div class="form-group">
+                                <label for="username" class="form-label font-weight-semibold">
+                                    <i class="fas fa-user text-muted mr-2"></i>
+                                    Usuário
+                                </label>
+                                <input type="text" 
+                                       class="form-control form-control-lg" 
+                                       id="username" 
+                                       name="username" 
+                                       placeholder="Digite seu usuário"
+                                       value="{{ request.form.username if request.form.username else '' }}"
+                                       required
+                                       autocomplete="username"
+                                       autofocus>
+                                <div class="invalid-feedback">
+                                    Por favor, digite seu usuário.
+                                </div>
+                            </div>
+                            
+                            <!-- Password -->
+                            <div class="form-group">
+                                <label for="password" class="form-label font-weight-semibold">
+                                    <i class="fas fa-lock text-muted mr-2"></i>
+                                    Senha
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" 
+                                           class="form-control form-control-lg" 
+                                           id="password" 
+                                           name="password" 
+                                           placeholder="Digite sua senha"
+                                           required
+                                           autocomplete="current-password">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary" 
+                                                type="button" 
+                                                id="togglePassword"
+                                                tabindex="-1">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="invalid-feedback">
+                                    Por favor, digite sua senha.
+                                </div>
+                            </div>
+                            
+                            <!-- Remember Me -->
+                            <div class="form-group">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" 
+                                           class="custom-control-input" 
+                                           id="remember" 
+                                           name="remember"
+                                           {{ 'checked' if request.form.remember else '' }}>
+                                    <label class="custom-control-label" for="remember">
+                                        Lembrar de mim
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Submit Button -->
+                            <div class="form-group mb-0">
+                                <button type="submit" 
+                                        class="btn btn-primary btn-lg btn-block"
+                                        id="loginButton">
+                                    <i class="fas fa-sign-in-alt mr-2"></i>
+                                    Entrar
+                                </button>
+                            </div>
+                            
+                        </form>
+                        
+                    </div>
+                </div>
+                
+                <!-- System Info -->
+                <div class="text-center mt-4">
+                    <small class="text-white-50">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Sistema local - Versão 1.0.0
+                    </small>
+                </div>
+                
+                <!-- Default Credentials Info -->
+                {% if config.DEBUG %}
+                <div class="card mt-3 bg-warning">
+                    <div class="card-body p-3">
+                        <h6 class="card-title mb-2">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Modo Desenvolvimento
+                        </h6>
+                        <small>
+                            <strong>Usuário:</strong> admin<br>
+                            <strong>Senha:</strong> admin123
+                        </small>
+                    </div>
+                </div>
+                {% endif %}
+                
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Login Page Styles */
+.login-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+}
+
+.login-logo {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.card {
+    border-radius: 1rem;
+    backdrop-filter: blur(10px);
+}
+
+.card-body {
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 1rem;
+}
+
+.form-control-lg {
+    border-radius: 0.5rem;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.form-control-lg:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.btn-lg {
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+.custom-control-label {
+    font-weight: 500;
+}
+
+/* Loading state */
+.btn-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.btn-loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 576px) {
+    .card-body {
+        padding: 2rem !important;
+    }
+    
+    .login-logo i {
+        font-size: 2.5rem !important;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .card-body {
+        background: rgba(33, 37, 41, 0.95);
+        color: #fff;
+    }
+    
+    .form-control-lg {
+        background-color: #495057;
+        border-color: #6c757d;
+        color: #fff;
+    }
+    
+    .form-control-lg::placeholder {
+        color: #adb5bd;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Toggle password visibility
+    $('#togglePassword').click(function() {
+        const passwordField = $('#password');
+        const passwordFieldType = passwordField.attr('type');
+        const icon = $(this).find('i');
+        
+        if (passwordFieldType === 'password') {
+            passwordField.attr('type', 'text');
+            icon.removeClass('fa-eye').addClass('fa-eye-slash');
+        } else {
+            passwordField.attr('type', 'password');
+            icon.removeClass('fa-eye-slash').addClass('fa-eye');
+        }
+    });
+    
+    // Form validation
+    $('#loginForm').on('submit', function(e) {
+        const form = this;
+        
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+        } else {
+            // Add loading state
+            const submitButton = $('#loginButton');
+            submitButton.addClass('btn-loading').prop('disabled', true);
+        }
+        
+        $(form).addClass('was-validated');
+    });
+    
+    // Auto-focus on username field
+    $('#username').focus();
+    
+    // Handle keyboard shortcuts
+    $(document).on('keydown', function(e) {
+        // Ctrl + Enter to submit
+        if ((e.ctrlKey || e.metaKey) && e.keyCode === 13) {
+            $('#loginForm').submit();
+        }
+    });
+    
+    // Clear form validation on input
+    $('.form-control').on('input', function() {
+        $(this).removeClass('is-invalid');
+    });
+    
+    // Auto-fill username in development
+    if (window.APP_CONFIG.DEBUG && !$('#username').val()) {
+        $('#username').val('admin');
+    }
+});
+
+// Prevent back button after login attempt
+window.history.pushState(null, "", window.location.href);
+window.onpopstate = function() {
+    window.history.pushState(null, "", window.location.href);
+};
+</script>
+{% endblock %}
