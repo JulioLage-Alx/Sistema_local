@@ -1,0 +1,542 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {{ 'Editar Cliente' if cliente else 'Novo Cliente' }} - Sistema Crediário Açougue
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-{{ 'edit' if cliente else 'plus' }} text-primary"></i>
+                        {{ 'Editar Cliente' if cliente else 'Novo Cliente' }}
+                    </h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('clientes.index') }}">Clientes</a>
+                            </li>
+                            {% if cliente %}
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('clientes.view', id=cliente.id) }}">{{ cliente.nome }}</a>
+                            </li>
+                            <li class="breadcrumb-item active">Editar</li>
+                            {% else %}
+                            <li class="breadcrumb-item active">Novo</li>
+                            {% endif %}
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <a href="{{ url_for('clientes.view', id=cliente.id) if cliente else url_for('clientes.index') }}" 
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="d-none d-md-inline">{{ 'Ver Cliente' if cliente else 'Voltar' }}</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Form -->
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-10">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-user-circle"></i>
+                        Dados do Cliente
+                    </h6>
+                </div>
+                <div class="card-body">
+                    
+                    <form method="POST" class="needs-validation" novalidate data-autosave>
+                        
+                        <!-- Nome -->
+                        <div class="form-group">
+                            <label for="nome" class="form-label required">
+                                <i class="fas fa-user text-muted mr-1"></i>
+                                Nome Completo
+                            </label>
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   id="nome" 
+                                   name="nome" 
+                                   placeholder="Digite o nome completo do cliente"
+                                   value="{{ cliente.nome if cliente else request.form.nome if request.form.nome else '' }}"
+                                   required
+                                   maxlength="100"
+                                   autofocus>
+                            <div class="invalid-feedback">
+                                Por favor, digite o nome do cliente.
+                            </div>
+                            <small class="form-text text-muted">
+                                Nome como aparecerá nos relatórios e comprovantes.
+                            </small>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- CPF -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="cpf" class="form-label">
+                                        <i class="fas fa-id-card text-muted mr-1"></i>
+                                        CPF
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control mask-cpf validate-cpf" 
+                                           id="cpf" 
+                                           name="cpf" 
+                                           placeholder="000.000.000-00"
+                                           value="{{ cliente.cpf if cliente else request.form.cpf if request.form.cpf else '' }}"
+                                           maxlength="14">
+                                    <div class="invalid-feedback">
+                                        CPF inválido.
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Opcional. Será validado se informado.
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <!-- Telefone -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="telefone" class="form-label">
+                                        <i class="fas fa-phone text-muted mr-1"></i>
+                                        Telefone
+                                    </label>
+                                    <input type="tel" 
+                                           class="form-control mask-phone" 
+                                           id="telefone" 
+                                           name="telefone" 
+                                           placeholder="(31) 99999-9999"
+                                           value="{{ cliente.telefone if cliente else request.form.telefone if request.form.telefone else '' }}"
+                                           maxlength="15">
+                                    <div class="invalid-feedback">
+                                        Telefone inválido.
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Para contato e cobrança.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Endereço -->
+                        <div class="form-group">
+                            <label for="endereco" class="form-label">
+                                <i class="fas fa-map-marker-alt text-muted mr-1"></i>
+                                Endereço
+                            </label>
+                            <textarea class="form-control" 
+                                      id="endereco" 
+                                      name="endereco" 
+                                      rows="3"
+                                      placeholder="Rua, número, bairro, cidade - CEP"
+                                      maxlength="500">{{ cliente.endereco if cliente else request.form.endereco if request.form.endereco else '' }}</textarea>
+                            <small class="form-text text-muted">
+                                Endereço completo para entrega e correspondência.
+                            </small>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- Limite de Crédito -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="limite_credito" class="form-label required">
+                                        <i class="fas fa-credit-card text-muted mr-1"></i>
+                                        Limite de Crédito
+                                    </label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">R$</span>
+                                        </div>
+                                        <input type="text" 
+                                               class="form-control mask-money" 
+                                               id="limite_credito" 
+                                               name="limite_credito" 
+                                               placeholder="0,00"
+                                               value="{{ '%.2f'|format(cliente.limite_credito)|replace('.', ',') if cliente else request.form.limite_credito if request.form.limite_credito else '500,00' }}"
+                                               required>
+                                        <div class="invalid-feedback">
+                                            Limite de crédito é obrigatório.
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Valor máximo que o cliente pode dever.
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <!-- Status (apenas na edição) -->
+                            {% if cliente %}
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="ativo" class="form-label">
+                                        <i class="fas fa-toggle-on text-muted mr-1"></i>
+                                        Status
+                                    </label>
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" 
+                                               class="custom-control-input" 
+                                               id="ativo" 
+                                               name="ativo"
+                                               {{ 'checked' if cliente.ativo else '' }}>
+                                        <label class="custom-control-label" for="ativo">
+                                            Cliente Ativo
+                                        </label>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Apenas clientes ativos podem fazer novas compras.
+                                        {% if cliente.vendas_em_aberto.count() > 0 %}
+                                        <br><span class="text-warning">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            Cliente possui {{ cliente.vendas_em_aberto.count() }} venda(s) em aberto.
+                                        </span>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Observações -->
+                        <div class="form-group">
+                            <label for="observacoes" class="form-label">
+                                <i class="fas fa-sticky-note text-muted mr-1"></i>
+                                Observações
+                            </label>
+                            <textarea class="form-control" 
+                                      id="observacoes" 
+                                      name="observacoes" 
+                                      rows="3"
+                                      placeholder="Observações sobre o cliente (preferências, restrições, etc.)"
+                                      maxlength="500">{{ cliente.observacoes if cliente else request.form.observacoes if request.form.observacoes else '' }}</textarea>
+                            <small class="form-text text-muted">
+                                Informações adicionais sobre o cliente.
+                            </small>
+                        </div>
+                        
+                        <!-- Resumo do Cliente (apenas na edição) -->
+                        {% if cliente %}
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card bg-light">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-chart-line text-info"></i>
+                                            Resumo Financeiro
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row text-center">
+                                            <div class="col-md-3">
+                                                <div class="mb-2">
+                                                    <i class="fas fa-shopping-cart text-primary fa-2x"></i>
+                                                </div>
+                                                <h6 class="text-primary">{{ cliente.vendas.count() }}</h6>
+                                                <small class="text-muted">Total de Vendas</small>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="mb-2">
+                                                    <i class="fas fa-clock text-warning fa-2x"></i>
+                                                </div>
+                                                <h6 class="text-warning">R$ {{ "%.2f"|format(cliente.valor_total_em_aberto) }}</h6>
+                                                <small class="text-muted">Em Aberto</small>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="mb-2">
+                                                    <i class="fas fa-credit-card text-success fa-2x"></i>
+                                                </div>
+                                                <h6 class="text-success">R$ {{ "%.2f"|format(cliente.credito_disponivel) }}</h6>
+                                                <small class="text-muted">Crédito Disponível</small>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="mb-2">
+                                                    <i class="fas fa-{{ 'check-circle' if cliente.pode_comprar else 'times-circle' }} {{ 'text-success' if cliente.pode_comprar else 'text-danger' }} fa-2x"></i>
+                                                </div>
+                                                <h6 class="{{ 'text-success' if cliente.pode_comprar else 'text-danger' }}">
+                                                    {{ 'Pode Comprar' if cliente.pode_comprar else 'Bloqueado' }}
+                                                </h6>
+                                                <small class="text-muted">Status de Compra</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Form Actions -->
+                        <div class="form-group mt-4 pt-3 border-top">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    {% if cliente %}
+                                    <button type="button" 
+                                            class="btn btn-outline-danger" 
+                                            data-toggle="modal" 
+                                            data-target="#deleteModal">
+                                        <i class="fas fa-trash"></i>
+                                        <span class="d-none d-md-inline">Excluir Cliente</span>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('clientes.view', id=cliente.id) if cliente else url_for('clientes.index') }}" 
+                                       class="btn btn-outline-secondary mr-2">
+                                        <i class="fas fa-times"></i>
+                                        Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-primary" data-loading>
+                                        <i class="fas fa-save"></i>
+                                        {{ 'Atualizar' if cliente else 'Cadastrar' }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </form>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<!-- Delete Modal -->
+{% if cliente %}
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-danger"></i>
+                    Confirmar Exclusão
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir o cliente <strong>{{ cliente.nome }}</strong>?</p>
+                
+                {% if cliente.vendas.count() > 0 %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Atenção!</strong> Este cliente possui {{ cliente.vendas.count() }} venda(s) registrada(s).
+                    Não será possível excluí-lo.
+                </div>
+                {% else %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-trash"></i>
+                    <strong>Esta ação não pode ser desfeita!</strong>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                {% if cliente.vendas.count() == 0 %}
+                <form method="POST" action="{{ url_for('clientes.delete', id=cliente.id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Confirmar Exclusão
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.required::after {
+    content: " *";
+    color: red;
+}
+
+.form-control-lg {
+    border-radius: 0.5rem;
+}
+
+.card-header {
+    border-bottom: 2px solid #e3e6f0;
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.custom-control-label::before {
+    border-radius: 0.5rem;
+}
+
+.custom-control-label::after {
+    border-radius: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .btn {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Auto-save indicator */
+.autosave-indicator {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    z-index: 1000;
+    padding: 0.5rem 1rem;
+    background: rgba(0, 123, 255, 0.9);
+    color: white;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.autosave-indicator.show {
+    opacity: 1;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Form validation
+    $('.needs-validation').on('submit', function(e) {
+        if (!this.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        $(this).addClass('was-validated');
+    });
+    
+    // CPF validation
+    $('#cpf').on('blur', function() {
+        const cpf = $(this).val().replace(/\D/g, '');
+        if (cpf && !App.utils.validateCPF(cpf)) {
+            $(this).addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-invalid');
+        }
+    });
+    
+    // Real-time credit limit validation
+    $('#limite_credito').on('input', function() {
+        const valor = App.utils.parseMoney($(this).val());
+        if (valor < 0) {
+            $(this).addClass('is-invalid');
+            $(this).siblings('.invalid-feedback').text('Limite não pode ser negativo.');
+        } else {
+            $(this).removeClass('is-invalid');
+        }
+    });
+    
+    // Auto-save indication
+    let autoSaveIndicator = $('<div class="autosave-indicator">Salvando rascunho...</div>');
+    $('body').append(autoSaveIndicator);
+    
+    $('form[data-autosave]').on('input change', function() {
+        autoSaveIndicator.addClass('show');
+        setTimeout(() => {
+            autoSaveIndicator.removeClass('show');
+        }, 2000);
+    });
+    
+    // Character count for text areas
+    $('textarea[maxlength]').each(function() {
+        const maxLength = $(this).attr('maxlength');
+        const helpText = $(this).siblings('.form-text');
+        const currentLength = $(this).val().length;
+        
+        helpText.append(` <span class="text-muted">(${currentLength}/${maxLength})</span>`);
+        
+        $(this).on('input', function() {
+            const currentLength = $(this).val().length;
+            helpText.find('span').text(`(${currentLength}/${maxLength})`);
+            
+            if (currentLength > maxLength * 0.9) {
+                helpText.find('span').removeClass('text-muted').addClass('text-warning');
+            } else {
+                helpText.find('span').removeClass('text-warning').addClass('text-muted');
+            }
+        });
+    });
+    
+    // Keyboard shortcuts
+    $(document).on('keydown', function(e) {
+        // Ctrl + S to save
+        if ((e.ctrlKey || e.metaKey) && e.keyCode === 83) {
+            e.preventDefault();
+            $('form').submit();
+        }
+        
+        // Esc to cancel
+        if (e.keyCode === 27) {
+            const cancelBtn = $('.btn-outline-secondary[href]');
+            if (cancelBtn.length) {
+                window.location.href = cancelBtn.attr('href');
+            }
+        }
+    });
+    
+    // Warn about unsaved changes
+    let formChanged = false;
+    $('form input, form textarea, form select').on('change', function() {
+        formChanged = true;
+    });
+    
+    $(window).on('beforeunload', function() {
+        if (formChanged) {
+            return 'Você tem alterações não salvas. Deseja sair mesmo assim?';
+        }
+    });
+    
+    $('form').on('submit', function() {
+        formChanged = false;
+    });
+    
+    // Focus management
+    $('#nome').focus();
+});
+
+// Phone number formatting
+$('#telefone').on('input', function() {
+    let value = $(this).val().replace(/\D/g, '');
+    if (value.length >= 11) {
+        $(this).removeClass('is-invalid');
+    }
+});
+
+// Success feedback
+{% if cliente %}
+function showSuccessMessage() {
+    App.ui.showToast('Cliente atualizado com sucesso!', 'success');
+}
+{% else %}
+function showSuccessMessage() {
+    App.ui.showToast('Cliente cadastrado com sucesso!', 'success');
+}
+{% endif %}
+</script>
+{% endblock %}
