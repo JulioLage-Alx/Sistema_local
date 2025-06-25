@@ -1,0 +1,484 @@
+{% extends "base.html" %}
+
+{% block title %}Pagamento - Venda #{{ venda.id }} - Sistema Crediário Açougue{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-credit-card text-success"></i>
+                        Registrar Pagamento
+                        <small class="text-muted">- Venda #{{ venda.id }}</small>
+                    </h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('vendas.index') }}">Vendas</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('vendas.view', id=venda.id) }}">Venda #{{ venda.id }}</a>
+                            </li>
+                            <li class="breadcrumb-item active">Pagamento</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <a href="{{ url_for('vendas.view', id=venda.id) }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="d-none d-md-inline">Voltar</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        
+        <!-- Payment Form -->
+        <div class="col-xl-8 col-lg-7">
+            
+            <!-- Sale Summary -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-receipt"></i>
+                        Resumo da Venda
+                    </h6>
+                </div>
+                <div class="card-body">
+                    
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Cliente:</strong>
+                            <div>{{ venda.cliente.nome }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Data da Venda:</strong>
+                            <div>{{ venda.data_venda.strftime('%d/%m/%Y') }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Vencimento:</strong>
+                            <div class="{% if venda.esta_vencida %}text-danger font-weight-bold{% endif %}">
+                                {{ venda.data_vencimento.strftime('%d/%m/%Y') }}
+                                {% if venda.esta_vencida %}
+                                <br><small>(Vencida)</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Status:</strong>
+                            <div>
+                                <span class="badge badge-{{ venda.status_cor }}">
+                                    {{ venda.status_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Valor Total:</strong>
+                            <div class="h5 text-primary">{{ "R$ %.2f"|format(venda.total) }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Já Pago:</strong>
+                            <div class="h5 text-success">{{ "R$ %.2f"|format(venda.valor_total_pago) }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Saldo Restante:</strong>
+                            <div class="h5 text-warning font-weight-bold">{{ "R$ %.2f"|format(venda.valor_saldo) }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Progresso:</strong>
+                            <div class="progress mt-1">
+                                <div class="progress-bar bg-success" 
+                                     style="width: {{ (venda.valor_total_pago / venda.total * 100) if venda.total > 0 else 0 }}%">
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                {{ "%.0f"|format((venda.valor_total_pago / venda.total * 100) if venda.total > 0 else 0) }}%
+                            </small>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <!-- Payment Form -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-money-bill-wave"></i>
+                        Dados do Pagamento
+                    </h6>
+                </div>
+                <div class="card-body">
+                    
+                    <form method="POST" id="pagamentoForm" class="needs-validation" novalidate>
+                        
+                        <!-- Payment Amount -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="valor" class="form-label">
+                                        Valor do Pagamento <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">R$</span>
+                                        </div>
+                                        <input type="text" 
+                                               class="form-control money-input" 
+                                               id="valor" 
+                                               name="valor" 
+                                               value="{{ "%.2f"|format(venda.valor_saldo) }}"
+                                               placeholder="0,00"
+                                               required>
+                                        <div class="invalid-feedback">
+                                            Por favor, informe o valor do pagamento.
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Valor máximo: R$ {{ "%.2f"|format(venda.valor_saldo) }}
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="forma_pagamento" class="form-label">
+                                        Forma de Pagamento <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-control" id="forma_pagamento" name="forma_pagamento" required>
+                                        <option value="">Selecione...</option>
+                                        {% for forma in formas_pagamento %}
+                                        <option value="{{ forma[0] }}" {% if forma[0] == 'dinheiro' %}selected{% endif %}>
+                                            {{ forma[1] }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="invalid-feedback">
+                                        Por favor, selecione a forma de pagamento.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Cash Payment Fields -->
+                        <div id="valor-recebido-group" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="valor_recebido" class="form-label">
+                                            Valor Recebido
+                                        </label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">R$</span>
+                                            </div>
+                                            <input type="text" 
+                                                   class="form-control money-input" 
+                                                   id="valor_recebido" 
+                                                   name="valor_recebido" 
+                                                   placeholder="0,00">
+                                        </div>
+                                        <small class="form-text text-muted">
+                                            Deixe em branco se for o valor exato
+                                        </small>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Troco</label>
+                                        <div id="troco-info" class="d-none">
+                                            <div class="alert alert-success mb-0">
+                                                <i class="fas fa-hand-holding-usd mr-2"></i>
+                                                <strong>Troco: <span id="troco">R$ 0,00</span></strong>
+                                            </div>
+                                        </div>
+                                        <div id="troco-placeholder" class="form-control-plaintext text-muted">
+                                            Será calculado automaticamente
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Observations -->
+                        <div class="form-group">
+                            <label for="observacoes" class="form-label">
+                                Observações (Opcional)
+                            </label>
+                            <textarea class="form-control" 
+                                      id="observacoes" 
+                                      name="observacoes" 
+                                      rows="3" 
+                                      placeholder="Observações sobre o pagamento..."></textarea>
+                        </div>
+                        
+                        <!-- Print Receipt -->
+                        <div class="form-group">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" 
+                                       class="custom-control-input" 
+                                       id="imprimir_comprovante" 
+                                       name="imprimir_comprovante" 
+                                       checked>
+                                <label class="custom-control-label" for="imprimir_comprovante">
+                                    <i class="fas fa-print mr-1"></i>
+                                    Imprimir comprovante após o pagamento
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Submit Buttons -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button type="submit" class="btn btn-success btn-lg btn-block">
+                                    <i class="fas fa-check mr-2"></i>
+                                    Confirmar Pagamento
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="{{ url_for('vendas.view', id=venda.id) }}" 
+                                   class="btn btn-outline-secondary btn-lg btn-block">
+                                    <i class="fas fa-times mr-2"></i>
+                                    Cancelar
+                                </a>
+                            </div>
+                        </div>
+                        
+                    </form>
+                    
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-xl-4 col-lg-5">
+            
+            <!-- Payment Summary -->
+            <div class="card shadow mb-4 sticky-top" style="top: 20px;">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-calculator"></i>
+                        Resumo do Pagamento
+                    </h6>
+                </div>
+                <div class="card-body text-center">
+                    
+                    <div class="mb-3">
+                        <label class="text-muted small">VALOR A PAGAR</label>
+                        <div class="display-4 font-weight-bold text-success" id="valor_total">
+                            {{ "R$ %.2f"|format(venda.valor_saldo) }}
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mb-3">
+                        <button type="button" 
+                                class="btn btn-outline-primary btn-sm"
+                                onclick="$('#valor').val('{{ \"%.2f\"|format(venda.valor_saldo) }}')">
+                            <i class="fas fa-coins mr-1"></i>
+                            Pagar Total
+                        </button>
+                        
+                        <button type="button" 
+                                class="btn btn-outline-info btn-sm ml-2"
+                                onclick="$('#valor').val('{{ \"%.2f\"|format(venda.valor_saldo / 2) }}')">
+                            <i class="fas fa-divide mr-1"></i>
+                            Pagar Metade
+                        </button>
+                    </div>
+                    
+                    <small class="text-muted">
+                        Pagamentos parciais são permitidos
+                    </small>
+                    
+                </div>
+            </div>
+            
+            <!-- Payment Methods Info -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-info-circle"></i>
+                        Formas de Pagamento
+                    </h6>
+                </div>
+                <div class="card-body">
+                    
+                    <div class="payment-method mb-3" data-method="dinheiro">
+                        <div class="payment-icon">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div><strong>Dinheiro</strong></div>
+                        <small class="text-muted">Com cálculo de troco</small>
+                    </div>
+                    
+                    <div class="payment-method mb-3" data-method="cartao">
+                        <div class="payment-icon">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                        <div><strong>Cartão</strong></div>
+                        <small class="text-muted">Débito ou crédito</small>
+                    </div>
+                    
+                    <div class="payment-method" data-method="pix">
+                        <div class="payment-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <div><strong>PIX</strong></div>
+                        <small class="text-muted">Transferência instantânea</small>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <!-- Previous Payments -->
+            {% if venda.pagamentos %}
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-secondary">
+                        <i class="fas fa-history"></i>
+                        Pagamentos Anteriores
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                {% for pagamento in venda.pagamentos %}
+                                <tr>
+                                    <td>{{ pagamento.data_pagamento.strftime('%d/%m') }}</td>
+                                    <td>
+                                        <span class="badge badge-info badge-sm">
+                                            {{ pagamento.forma_pagamento_display }}
+                                        </span>
+                                    </td>
+                                    <td class="text-right font-weight-medium">
+                                        {{ "R$ %.2f"|format(pagamento.valor) }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                </div>
+            </div>
+            {% endif %}
+            
+        </div>
+        
+    </div>
+    
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/vendas.js') }}"></script>
+
+<script>
+$(document).ready(function() {
+    
+    // Mostrar/ocultar campos de dinheiro
+    $('#forma_pagamento').change(function() {
+        const forma = $(this).val();
+        if (forma === 'dinheiro') {
+            $('#valor-recebido-group').slideDown();
+        } else {
+            $('#valor-recebido-group').slideUp();
+            $('#troco-info').addClass('d-none');
+            $('#valor_recebido').val('');
+        }
+    });
+    
+    // Calcular troco
+    $('#valor_recebido').on('input', function() {
+        const valorTotal = parseFloat($('#valor').val().replace(',', '.')) || 0;
+        const valorRecebido = parseFloat($(this).val().replace(',', '.')) || 0;
+        
+        if (valorRecebido > 0 && valorTotal > 0) {
+            const troco = valorRecebido - valorTotal;
+            
+            if (troco >= 0) {
+                $('#troco').text('R$ ' + troco.toFixed(2).replace('.', ','));
+                $('#troco-info').removeClass('d-none');
+                
+                if (troco > 0) {
+                    $('#troco-info .alert').removeClass('alert-warning').addClass('alert-success');
+                } else {
+                    $('#troco-info .alert').removeClass('alert-success').addClass('alert-warning');
+                }
+            } else {
+                $('#troco-info').addClass('d-none');
+            }
+        } else {
+            $('#troco-info').addClass('d-none');
+        }
+    });
+    
+    // Seleção de forma de pagamento via cards
+    $('.payment-method').click(function() {
+        const method = $(this).data('method');
+        $('#forma_pagamento').val(method).trigger('change');
+        
+        $('.payment-method').removeClass('active');
+        $(this).addClass('active');
+    });
+    
+    // Ativar método de dinheiro por padrão
+    $('.payment-method[data-method="dinheiro"]').addClass('active');
+    $('#valor-recebido-group').show();
+    
+    // Aplicar máscaras
+    App.ui.applyMasks();
+    
+    // Validação do formulário
+    $('#pagamentoForm').on('submit', function(e) {
+        const valor = parseFloat($('#valor').val().replace(',', '.')) || 0;
+        const valorMaximo = {{ venda.valor_saldo }};
+        
+        if (valor <= 0) {
+            e.preventDefault();
+            App.ui.showToast('Valor do pagamento deve ser maior que zero', 'error');
+            return;
+        }
+        
+        if (valor > valorMaximo) {
+            e.preventDefault();
+            App.ui.showToast('Valor do pagamento não pode ser maior que o saldo da venda', 'error');
+            return;
+        }
+        
+        // Confirmar pagamento
+        const forma = $('#forma_pagamento option:selected').text();
+        const mensagem = `Confirmar pagamento de R$ ${valor.toFixed(2).replace('.', ',')} via ${forma}?`;
+        
+        if (!confirm(mensagem)) {
+            e.preventDefault();
+        }
+    });
+    
+    // Focus no campo valor
+    $('#valor').focus().select();
+});
+</script>
+{% endblock %}

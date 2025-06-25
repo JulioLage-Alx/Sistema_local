@@ -4,87 +4,124 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="Sistema de Crediário para Açougue - Gestão completa de vendas a crediário">
+    <meta name="author" content="Sistema Crediário Açougue">
     
-    <title>
-        {% block title %}
-        Sistema Crediário Açougue
-        {% endblock %}
-    </title>
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
     
-    <!-- Bootstrap CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
-    <!-- Custom CSS -->
-    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+    <title>{% block title %}Sistema Crediário Açougue{% endblock %}</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
     
-    {% block extra_css %}{% endblock %}
+    <!-- CSS -->
+    <!-- Bootstrap 4.6 CSS -->
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link href="{{ url_for('static', filename='css/fontawesome.min.css') }}" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+    
+    <!-- Block para CSS adicional -->
+    {% block styles %}{% endblock %}
+    
+    <!-- Global JavaScript Variables -->
+    <script>
+        window.appConfig = {
+            baseUrl: "{{ request.url_root }}",
+            staticUrl: "{{ url_for('static', filename='') }}",
+            csrfToken: "{{ csrf_token() if csrf_token else '' }}",
+            currentUser: "{{ session.get('user_name', '') }}",
+            currentUrl: "{{ request.url }}",
+            appName: "{{ config.get('APP_NAME', 'Sistema Crediário Açougue') }}"
+        };
+    </script>
 </head>
-<body class="{% block body_class %}{% endblock %}">
+
+<body id="page-top">
     
-    <!-- Navbar -->
-    {% if is_logged_in() %}
-        {% include 'navbar.html' %}
-    {% endif %}
-    
-    <!-- Main Content -->
-    <main class="{% if is_logged_in() %}main-content{% else %}login-content{% endif %}">
+    <!-- Page Wrapper -->
+    <div id="wrapper">
         
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="container-fluid mt-3">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                            <i class="fas fa-{{ 'exclamation-triangle' if category == 'danger' or category == 'error' else 'check' if category == 'success' else 'info-circle' if category == 'info' else 'exclamation-triangle' }}"></i>
-                            {{ message }}
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+            
+            <!-- Main Content -->
+            <div id="content">
+                
+                <!-- Navbar -->
+                {% include 'navbar.html' %}
+                
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="container-fluid mt-3">
+                            <div id="flash-messages">
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                        {% if category == 'success' %}
+                                            <i class="fas fa-check-circle me-2"></i>
+                                        {% elif category == 'danger' or category == 'error' %}
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                        {% elif category == 'warning' %}
+                                            <i class="fas fa-exclamation-circle me-2"></i>
+                                        {% elif category == 'info' %}
+                                            <i class="fas fa-info-circle me-2"></i>
+                                        {% endif %}
+                                        {{ message }}
+                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                {% endfor %}
+                            </div>
                         </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-        
-        <!-- Page Content -->
-        {% block content %}{% endblock %}
-        
-    </main>
-    
-    <!-- Footer -->
-    {% if is_logged_in() %}
-        <footer class="footer mt-auto py-3 bg-light">
-            <div class="container-fluid">
-                <div class="row">
-                    <div class="col-md-6">
-                        <span class="text-muted">
-                            © {{ moment().year }} Sistema Crediário Açougue v1.0.0
-                        </span>
-                    </div>
-                    <div class="col-md-6 text-right">
-                        <span class="text-muted">
-                            <i class="fas fa-user"></i>
-                            {{ current_user.username if current_user.is_authenticated else 'Usuário' }}
-                        </span>
-                    </div>
-                </div>
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Page Content -->
+                <main role="main">
+                    {% block content %}{% endblock %}
+                </main>
+                
             </div>
-        </footer>
-    {% endif %}
+            <!-- End of Main Content -->
+            
+            <!-- Footer -->
+            <footer class="sticky-footer bg-white">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>
+                            &copy; {{ moment().format('YYYY') if moment else '2025' }} 
+                            {{ config.get('APP_NAME', 'Sistema Crediário Açougue') }}. 
+                            Versão {{ config.get('APP_VERSION', '1.0.0') }}
+                        </span>
+                    </div>
+                </div>
+            </footer>
+            <!-- End of Footer -->
+            
+        </div>
+        <!-- End of Content Wrapper -->
+        
+    </div>
+    <!-- End of Page Wrapper -->
+    
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
     
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay" style="display: none;">
-        <div class="loading-spinner">
+        <div class="loading-content">
             <div class="spinner-border text-primary" role="status">
                 <span class="sr-only">Carregando...</span>
             </div>
-            <div class="mt-2">Carregando...</div>
+            <p class="mt-2 mb-0">Carregando...</p>
         </div>
     </div>
     
@@ -98,57 +135,61 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body" id="confirmModalBody">
-                    Tem certeza que deseja realizar esta ação?
+                <div class="modal-body">
+                    <p id="confirmModalMessage">Tem certeza que deseja realizar esta ação?</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                        <i class="fas fa-times"></i> Cancelar
-                    </button>
-                    <button type="button" class="btn btn-danger" id="confirmModalConfirm">
-                        <i class="fas fa-check"></i> Confirmar
-                    </button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmModalButton">Confirmar</button>
                 </div>
             </div>
         </div>
     </div>
     
     <!-- JavaScript -->
-    <!-- jQuery -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- jQuery 3.6 -->
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
     
-    <!-- Bootstrap JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap 4.6 JavaScript -->
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
     
     <!-- Chart.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    
-    <!-- Moment.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/locale/pt-br.min.js"></script>
-    
-    <!-- jQuery Mask Plugin -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
     
     <!-- Custom JavaScript -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     
-    {% block extra_js %}{% endblock %}
+    <!-- Block para JavaScript adicional -->
+    {% block scripts %}{% endblock %}
     
+    <!-- Auto-dismiss flash messages -->
     <script>
-        // Configurações globais
-        window.APP_CONFIG = {
-            BASE_URL: '{{ request.url_root }}',
-            CSRF_TOKEN: '{{ csrf_token() if csrf_token else "" }}',
-            USER_LOGGED: {{ 'true' if is_logged_in() else 'false' }},
-            DEBUG: {{ 'true' if config.DEBUG else 'false' }}
-        };
-        
-        // Inicializar aplicação
         $(document).ready(function() {
-            App.init();
+            // Auto-dismiss success messages after 5 seconds
+            setTimeout(function() {
+                $('.alert-success').fadeOut('slow');
+            }, 5000);
+            
+            // Auto-dismiss info messages after 7 seconds
+            setTimeout(function() {
+                $('.alert-info').fadeOut('slow');
+            }, 7000);
         });
     </script>
+    
+    <!-- Development tools (only in debug mode) -->
+    {% if config.DEBUG %}
+    <script>
+        // Console log para debug
+        console.log('Sistema Crediário Açougue - Modo Desenvolvimento');
+        console.log('Config:', window.appConfig);
+        
+        // Error reporting
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript Error:', e.error);
+        });
+    </script>
+    {% endif %}
     
 </body>
 </html>

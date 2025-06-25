@@ -1,354 +1,377 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <div class="container-fluid">
+<!-- Top Navigation Bar -->
+<nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+    
+    <!-- Brand -->
+    <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.dashboard') }}">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" height="32" class="me-2">
+        <span class="d-none d-lg-inline text-gray-800 font-weight-bold">
+            Sistema Crediário
+        </span>
+    </a>
+    
+    <!-- Sidebar Toggle (Topbar) - Only on mobile -->
+    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+        <i class="fa fa-bars"></i>
+    </button>
+    
+    <!-- Topbar Navigation -->
+    <ul class="navbar-nav ml-auto">
         
-        <!-- Brand -->
-        <a class="navbar-brand" href="{{ url_for('main.dashboard') }}">
-            <i class="fas fa-store"></i>
-            <span class="d-none d-md-inline">Sistema Açougue</span>
-        </a>
+        <!-- Navigation Links -->
+        <li class="nav-item dropdown no-arrow d-none d-md-block">
+            <a class="nav-link" href="{{ url_for('main.dashboard') }}" id="dashboardLink">
+                <i class="fas fa-tachometer-alt fa-sm text-gray-400"></i>
+                <span class="ml-1">Dashboard</span>
+            </a>
+        </li>
         
-        <!-- Toggle button for mobile -->
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+        <li class="nav-item dropdown no-arrow d-none d-md-block">
+            <a class="nav-link" href="{{ url_for('clientes.index') }}" id="clientesLink">
+                <i class="fas fa-users fa-sm text-gray-400"></i>
+                <span class="ml-1">Clientes</span>
+            </a>
+        </li>
         
-        <!-- Navbar items -->
-        <div class="collapse navbar-collapse" id="navbarNav">
-            
-            <!-- Left side menu -->
-            <ul class="navbar-nav mr-auto">
+        <li class="nav-item dropdown no-arrow d-none d-md-block">
+            <a class="nav-link" href="{{ url_for('vendas.index') }}" id="vendasLink">
+                <i class="fas fa-shopping-cart fa-sm text-gray-400"></i>
+                <span class="ml-1">Vendas</span>
+            </a>
+        </li>
+        
+        <li class="nav-item dropdown no-arrow d-none d-md-block">
+            <a class="nav-link" href="{{ url_for('pagamentos.index') }}" id="pagamentosLink">
+                <i class="fas fa-credit-card fa-sm text-gray-400"></i>
+                <span class="ml-1">Pagamentos</span>
+            </a>
+        </li>
+        
+        <li class="nav-item dropdown no-arrow d-none d-md-block">
+            <a class="nav-link" href="{{ url_for('relatorios.index') }}" id="relatoriosLink">
+                <i class="fas fa-chart-bar fa-sm text-gray-400"></i>
+                <span class="ml-1">Relatórios</span>
+            </a>
+        </li>
+        
+        <!-- Divider -->
+        <div class="topbar-divider d-none d-sm-block"></div>
+        
+        <!-- Alerts Dropdown -->
+        <li class="nav-item dropdown no-arrow mx-1">
+            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button" 
+               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-bell fa-fw"></i>
+                <!-- Counter - Alerts -->
+                <span class="badge badge-danger badge-counter" id="alertsCounter" style="display: none;">0</span>
+            </a>
+            <!-- Dropdown - Alerts -->
+            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in" 
+                 aria-labelledby="alertsDropdown">
+                <h6 class="dropdown-header bg-primary text-white">
+                    <i class="fas fa-bell mr-2"></i>
+                    Central de Alertas
+                </h6>
                 
-                <!-- Dashboard -->
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if request.endpoint == 'main.dashboard' }}" 
-                       href="{{ url_for('main.dashboard') }}">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span class="d-lg-inline">Dashboard</span>
+                <div id="alertsContent">
+                    <a class="dropdown-item text-center small text-gray-500" href="#">
+                        Nenhum alerta no momento
                     </a>
-                </li>
+                </div>
                 
-                <!-- Clientes -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {{ 'active' if 'clientes' in request.endpoint }}" 
-                       href="#" id="clientesDropdown" role="button" data-toggle="dropdown" 
-                       aria-haspopup="true" aria-expanded="false">
-                        <i class="fas fa-users"></i>
-                        <span class="d-lg-inline">Clientes</span>
-                    </a>
-                    <div class="dropdown-menu" aria-labelledby="clientesDropdown">
-                        <a class="dropdown-item" href="{{ url_for('clientes.index') }}">
-                            <i class="fas fa-list"></i> Listar Clientes
-                        </a>
-                        <a class="dropdown-item" href="{{ url_for('clientes.create') }}">
-                            <i class="fas fa-plus"></i> Novo Cliente
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="{{ url_for('clientes.index', filtro='inadimplentes') }}">
-                            <i class="fas fa-exclamation-triangle text-danger"></i> Inadimplentes
-                        </a>
-                    </div>
-                </li>
+                <a class="dropdown-item text-center small text-gray-500" href="{{ url_for('main.dashboard') }}">
+                    Ver Todos os Alertas
+                </a>
+            </div>
+        </li>
+        
+        <!-- Quick Actions Dropdown -->
+        <li class="nav-item dropdown no-arrow mx-1">
+            <a class="nav-link dropdown-toggle" href="#" id="quickActionsDropdown" role="button" 
+               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-plus fa-fw text-success"></i>
+            </a>
+            <!-- Dropdown - Quick Actions -->
+            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in" 
+                 aria-labelledby="quickActionsDropdown">
+                <h6 class="dropdown-header bg-success text-white">
+                    <i class="fas fa-plus mr-2"></i>
+                    Ações Rápidas
+                </h6>
                 
-                <!-- Vendas -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {{ 'active' if 'vendas' in request.endpoint }}" 
-                       href="#" id="vendasDropdown" role="button" data-toggle="dropdown" 
-                       aria-haspopup="true" aria-expanded="false">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span class="d-lg-inline">Vendas</span>
-                    </a>
-                    <div class="dropdown-menu" aria-labelledby="vendasDropdown">
-                        <a class="dropdown-item" href="{{ url_for('vendas.index') }}">
-                            <i class="fas fa-list"></i> Listar Vendas
-                        </a>
-                        <a class="dropdown-item" href="{{ url_for('vendas.create') }}">
-                            <i class="fas fa-plus"></i> Nova Venda
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="{{ url_for('vendas.index', status='aberta') }}">
-                            <i class="fas fa-clock text-warning"></i> Em Aberto
-                        </a>
-                        <a class="dropdown-item" href="{{ url_for('vendas.index', status='vencida') }}">
-                            <i class="fas fa-exclamation-triangle text-danger"></i> Vencidas
-                        </a>
-                    </div>
-                </li>
+                <a class="dropdown-item" href="{{ url_for('clientes.create') }}">
+                    <i class="fas fa-user-plus fa-sm fa-fw mr-2 text-primary"></i>
+                    Novo Cliente
+                </a>
                 
-                <!-- Pagamentos -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {{ 'active' if 'pagamentos' in request.endpoint }}" 
-                       href="#" id="pagamentosDropdown" role="button" data-toggle="dropdown" 
-                       aria-haspopup="true" aria-expanded="false">
-                        <i class="fas fa-money-bill-wave"></i>
-                        <span class="d-lg-inline">Pagamentos</span>
-                    </a>
-                    <div class="dropdown-menu" aria-labelledby="pagamentosDropdown">
-                        <a class="dropdown-item" href="{{ url_for('pagamentos.create') }}">
-                            <i class="fas fa-plus"></i> Registrar Pagamento
-                        </a>
-                        <a class="dropdown-item" href="{{ url_for('pagamentos.multiplo') }}">
-                            <i class="fas fa-layer-group"></i> Pagamento Múltiplo
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="{{ url_for('pagamentos.index') }}">
-                            <i class="fas fa-list"></i> Histórico
-                        </a>
-                    </div>
-                </li>
+                <a class="dropdown-item" href="{{ url_for('vendas.create') }}">
+                    <i class="fas fa-shopping-cart fa-sm fa-fw mr-2 text-success"></i>
+                    Nova Venda
+                </a>
                 
-                <!-- Relatórios -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {{ 'active' if 'relatorios' in request.endpoint }}" 
-                       href="#" id="relatoriosDropdown" role="button" data-toggle="dropdown" 
-                       aria-haspopup="true" aria-expanded="false">
-                        <i class="fas fa-chart-bar"></i>
-                        <span class="d-lg-inline">Relatórios</span>
-                    </a>
-                    <div class="dropdown-menu" aria-labelledby="relatoriosDropdown">
-                        <a class="dropdown-item" href="{{ url_for('relatorios.dashboard') }}">
-                            <i class="fas fa-chart-line"></i> Dashboard
-                        </a>
-                        <a class="dropdown-item" href="{{ url_for('relatorios.vendas') }}">
-                            <i class="fas fa-shopping-cart"></i> Vendas
-                        </a>
-                        <a class="dropdown-item" href="{{ url_for('relatorios.financeiro') }}">
-                            <i class="fas fa-dollar-sign"></i> Financeiro
-                        </a>
-                        <a class="dropdown-item" href="{{ url_for('relatorios.clientes') }}">
-                            <i class="fas fa-users"></i> Clientes
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="{{ url_for('relatorios.export') }}">
-                            <i class="fas fa-download"></i> Exportar Dados
-                        </a>
-                    </div>
-                </li>
+                <div class="dropdown-divider"></div>
                 
-            </ul>
-            
-            <!-- Right side menu -->
-            <ul class="navbar-nav ml-auto">
+                <a class="dropdown-item" href="{{ url_for('vendas.index', status='abertas') }}">
+                    <i class="fas fa-list fa-sm fa-fw mr-2 text-warning"></i>
+                    Vendas em Aberto
+                </a>
                 
-                <!-- Search -->
-                <li class="nav-item d-none d-md-block">
-                    <form class="form-inline" action="{{ url_for('main.search') }}" method="GET">
-                        <div class="input-group input-group-sm">
-                            <input type="search" class="form-control form-control-sm" 
-                                   placeholder="Buscar..." name="q" id="navbar-search"
-                                   value="{{ request.args.get('q', '') }}">
-                            <div class="input-group-append">
-                                <button class="btn btn-outline-light" type="submit">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </li>
+                <a class="dropdown-item" href="{{ url_for('relatorios.inadimplentes') }}">
+                    <i class="fas fa-exclamation-triangle fa-sm fa-fw mr-2 text-danger"></i>
+                    Clientes Inadimplentes
+                </a>
+            </div>
+        </li>
+        
+        <!-- User Information -->
+        <li class="nav-item dropdown no-arrow">
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
+               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span class="mr-2 d-none d-lg-inline text-gray-600 small">
+                    {{ session.get('user_name', 'Usuário') }}
+                </span>
+                <i class="fas fa-user-circle fa-lg text-gray-400"></i>
+            </a>
+            <!-- Dropdown - User Information -->
+            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" 
+                 aria-labelledby="userDropdown">
                 
-                <!-- Notifications -->
-                <li class="nav-item dropdown d-none d-md-block">
-                    <a class="nav-link dropdown-toggle" href="#" id="notificationsDropdown" 
-                       role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <i class="fas fa-bell"></i>
-                        <span class="badge badge-danger badge-pill notification-count" style="display: none;">0</span>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right notification-dropdown" 
-                         aria-labelledby="notificationsDropdown">
-                        <h6 class="dropdown-header">
-                            <i class="fas fa-bell"></i> Notificações
-                        </h6>
-                        <div class="dropdown-divider"></div>
-                        <div id="notifications-list">
-                            <a class="dropdown-item text-center text-muted" href="#">
-                                <small>Nenhuma notificação</small>
-                            </a>
-                        </div>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item text-center" href="{{ url_for('main.dashboard') }}">
-                            <small>Ver todas</small>
-                        </a>
-                    </div>
-                </li>
+                <div class="dropdown-header">
+                    <strong>{{ session.get('user_name', 'Usuário') }}</strong>
+                    <br>
+                    <small class="text-muted">Administrador Local</small>
+                </div>
                 
-                <!-- User menu -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" 
-                       role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <i class="fas fa-user-circle"></i>
-                        <span class="d-none d-lg-inline">{{ current_user.username }}</span>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
-                        <h6 class="dropdown-header">
-                            <i class="fas fa-user"></i> {{ current_user.username }}
-                        </h6>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="{{ url_for('auth.profile') }}">
-                            <i class="fas fa-user-cog"></i> Perfil
-                        </a>
-                        <a class="dropdown-item" href="{{ url_for('auth.change_password') }}">
-                            <i class="fas fa-key"></i> Alterar Senha
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="{{ url_for('main.about') }}">
-                            <i class="fas fa-info-circle"></i> Sobre
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
-                            <i class="fas fa-sign-out-alt"></i> Sair
-                        </a>
-                    </div>
-                </li>
+                <div class="dropdown-divider"></div>
                 
-            </ul>
-            
-        </div>
-    </div>
+                <a class="dropdown-item" href="{{ url_for('main.dashboard') }}">
+                    <i class="fas fa-tachometer-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                    Dashboard
+                </a>
+                
+                <a class="dropdown-item" href="#" data-toggle="modal" data-target="#systemInfoModal">
+                    <i class="fas fa-info-circle fa-sm fa-fw mr-2 text-gray-400"></i>
+                    Informações do Sistema
+                </a>
+                
+                <div class="dropdown-divider"></div>
+                
+                <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
+                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                    Sair
+                </a>
+            </div>
+        </li>
+        
+    </ul>
+    
 </nav>
 
-<!-- Mobile Search -->
-<div class="d-md-none bg-light border-bottom">
-    <div class="container-fluid py-2">
-        <form action="{{ url_for('main.search') }}" method="GET">
-            <div class="input-group input-group-sm">
-                <input type="search" class="form-control" placeholder="Buscar clientes, vendas..." 
-                       name="q" value="{{ request.args.get('q', '') }}">
-                <div class="input-group-append">
-                    <button class="btn btn-primary" type="submit">
-                        <i class="fas fa-search"></i>
-                    </button>
+<!-- Mobile Navigation Menu -->
+<div class="d-md-none">
+    <div class="collapse navbar-collapse" id="mobileNavMenu">
+        <div class="bg-light border-top">
+            <div class="container-fluid py-2">
+                <div class="row">
+                    <div class="col-6">
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-link btn-sm text-left w-100">
+                            <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('clientes.index') }}" class="btn btn-link btn-sm text-left w-100">
+                            <i class="fas fa-users mr-2"></i>Clientes
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('vendas.index') }}" class="btn btn-link btn-sm text-left w-100">
+                            <i class="fas fa-shopping-cart mr-2"></i>Vendas
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('pagamentos.index') }}" class="btn btn-link btn-sm text-left w-100">
+                            <i class="fas fa-credit-card mr-2"></i>Pagamentos
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('relatorios.index') }}" class="btn btn-link btn-sm text-left w-100">
+                            <i class="fas fa-chart-bar mr-2"></i>Relatórios
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ url_for('vendas.create') }}" class="btn btn-success btn-sm w-100">
+                            <i class="fas fa-plus mr-2"></i>Nova Venda
+                        </a>
+                    </div>
                 </div>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<!-- Quick Actions Bar (Mobile) -->
-<div class="d-md-none bg-white border-bottom">
-    <div class="container-fluid">
-        <div class="row text-center">
-            <div class="col-3">
-                <a href="{{ url_for('vendas.create') }}" class="btn btn-link btn-sm w-100 py-2">
-                    <i class="fas fa-plus fa-lg text-success"></i><br>
-                    <small>Nova Venda</small>
-                </a>
+<!-- Logout Modal -->
+<div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="logoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logoutModalLabel">Sair do Sistema</h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
             </div>
-            <div class="col-3">
-                <a href="{{ url_for('clientes.create') }}" class="btn btn-link btn-sm w-100 py-2">
-                    <i class="fas fa-user-plus fa-lg text-primary"></i><br>
-                    <small>Cliente</small>
-                </a>
+            <div class="modal-body">
+                <p>Tem certeza que deseja sair do sistema?</p>
+                <small class="text-muted">
+                    Você precisará fazer login novamente para acessar o sistema.
+                </small>
             </div>
-            <div class="col-3">
-                <a href="{{ url_for('pagamentos.create') }}" class="btn btn-link btn-sm w-100 py-2">
-                    <i class="fas fa-money-bill-wave fa-lg text-warning"></i><br>
-                    <small>Pagamento</small>
-                </a>
-            </div>
-            <div class="col-3">
-                <a href="{{ url_for('relatorios.dashboard') }}" class="btn btn-link btn-sm w-100 py-2">
-                    <i class="fas fa-chart-bar fa-lg text-info"></i><br>
-                    <small>Relatórios</small>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancelar</button>
+                <a class="btn btn-danger" href="{{ url_for('auth.logout') }}">
+                    <i class="fas fa-sign-out-alt mr-1"></i>
+                    Sair
                 </a>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-/* Navbar customizations */
-.navbar-brand {
-    font-weight: bold;
-}
+<!-- System Info Modal -->
+<div class="modal fade" id="systemInfoModal" tabindex="-1" role="dialog" aria-labelledby="systemInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="systemInfoModalLabel">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Informações do Sistema
+                </h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-sm-6"><strong>Sistema:</strong></div>
+                    <div class="col-sm-6">{{ config.get('APP_NAME', 'Sistema Crediário Açougue') }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-6"><strong>Versão:</strong></div>
+                    <div class="col-sm-6">{{ config.get('APP_VERSION', '1.0.0') }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-6"><strong>Usuário:</strong></div>
+                    <div class="col-sm-6">{{ session.get('user_name', 'Usuário') }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-6"><strong>Data/Hora:</strong></div>
+                    <div class="col-sm-6" id="currentDateTime"></div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-6"><strong>IP:</strong></div>
+                    <div class="col-sm-6">{{ request.remote_addr }}</div>
+                </div>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <small class="text-muted">
+                        Desenvolvido para gestão de crediário em açougues
+                        <br>
+                        © 2025 Sistema Crediário Açougue
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" data-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-.navbar-nav .nav-link {
-    transition: all 0.3s ease;
-}
-
-.navbar-nav .nav-link:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 0.25rem;
-}
-
-.navbar-nav .nav-link.active {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 0.25rem;
-}
-
-.notification-dropdown {
-    width: 300px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.notification-count {
-    position: absolute;
-    top: 0;
-    right: 0;
-    transform: translate(50%, -50%);
-}
-
-/* Mobile optimizations */
-@media (max-width: 768px) {
-    .navbar-brand span {
-        font-size: 0.9rem;
-    }
-    
-    .nav-link span {
-        font-size: 0.9rem;
-    }
-}
-</style>
-
+<!-- JavaScript para navbar -->
 <script>
 $(document).ready(function() {
-    // Carregar notificações
-    loadNotifications();
-    
-    // Atualizar notificações a cada 5 minutos
-    setInterval(loadNotifications, 300000);
-    
-    // Adicionar classe ativa baseada na URL atual
+    // Marcar link ativo baseado na URL atual
     var currentPath = window.location.pathname;
-    $('.navbar-nav .nav-link').each(function() {
-        var linkPath = $(this).attr('href');
-        if (currentPath.startsWith(linkPath) && linkPath !== '/') {
-            $(this).addClass('active');
-        }
+    
+    // Remover classe active de todos os links
+    $('.navbar-nav .nav-link').removeClass('active');
+    
+    // Adicionar classe active baseado na URL
+    if (currentPath.includes('/clientes')) {
+        $('#clientesLink').addClass('active');
+    } else if (currentPath.includes('/vendas')) {
+        $('#vendasLink').addClass('active');
+    } else if (currentPath.includes('/pagamentos')) {
+        $('#pagamentosLink').addClass('active');
+    } else if (currentPath.includes('/relatorios')) {
+        $('#relatoriosLink').addClass('active');
+    } else if (currentPath === '/' || currentPath.includes('/dashboard')) {
+        $('#dashboardLink').addClass('active');
+    }
+    
+    // Toggle mobile menu
+    $('#sidebarToggleTop').click(function() {
+        $('#mobileNavMenu').collapse('toggle');
     });
+    
+    // Atualizar data/hora no modal de informações
+    $('#systemInfoModal').on('show.bs.modal', function () {
+        var now = new Date();
+        $('#currentDateTime').text(now.toLocaleString('pt-BR'));
+    });
+    
+    // Carregar alertas
+    loadAlerts();
+    
+    // Atualizar alertas a cada 5 minutos
+    setInterval(loadAlerts, 5 * 60 * 1000);
 });
 
-function loadNotifications() {
-    $.get('/api/dashboard/alertas', function(data) {
-        var count = data.length;
-        var $notificationsList = $('#notifications-list');
-        var $notificationCount = $('.notification-count');
-        
-        if (count > 0) {
-            $notificationCount.text(count).show();
-            $notificationsList.empty();
-            
-            data.forEach(function(alerta) {
-                var $item = $(`
-                    <a class="dropdown-item" href="${alerta.link}">
-                        <div class="d-flex align-items-center">
-                            <div class="mr-2">
-                                <i class="${alerta.icone} text-${alerta.tipo}"></i>
-                            </div>
-                            <div>
-                                <div class="font-weight-bold">${alerta.titulo}</div>
-                                <small class="text-muted">${alerta.descricao}</small>
-                            </div>
-                        </div>
-                    </a>
-                `);
-                $notificationsList.append($item);
-            });
-        } else {
-            $notificationCount.hide();
+function loadAlerts() {
+    $.ajax({
+        url: '{{ url_for("api.get_alerts") }}',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                updateAlertsDropdown(response.alerts);
+            }
+        },
+        error: function() {
+            // Silenciosamente ignorar erros de alertas
         }
-    }).fail(function() {
-        console.error('Erro ao carregar notificações');
     });
+}
+
+function updateAlertsDropdown(alerts) {
+    var $counter = $('#alertsCounter');
+    var $content = $('#alertsContent');
+    
+    if (alerts && alerts.length > 0) {
+        $counter.text(alerts.length).show();
+        
+        var html = '';
+        alerts.forEach(function(alert) {
+            var iconClass = alert.type === 'warning' ? 'fa-exclamation-triangle text-warning' :
+                           alert.type === 'danger' ? 'fa-exclamation-circle text-danger' :
+                           'fa-info-circle text-info';
+                           
+            html += '<a class="dropdown-item d-flex align-items-center" href="' + (alert.url || '#') + '">' +
+                   '<div class="mr-3">' +
+                   '<div class="icon-circle bg-' + alert.type + '">' +
+                   '<i class="fas ' + iconClass + ' text-white"></i>' +
+                   '</div>' +
+                   '</div>' +
+                   '<div>' +
+                   '<div class="small text-gray-500">' + alert.date + '</div>' +
+                   '<span class="font-weight-bold">' + alert.message + '</span>' +
+                   '</div>' +
+                   '</a>';
+        });
+        
+        $content.html(html);
+    } else {
+        $counter.hide();
+        $content.html('<a class="dropdown-item text-center small text-gray-500" href="#">Nenhum alerta no momento</a>');
+    }
 }
 </script>

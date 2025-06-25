@@ -1,0 +1,502 @@
+{% extends "base.html" %}
+
+{% block title %}Pagamento Múltiplo - Sistema Crediário Açougue{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 vendas-module">
+    
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0 text-gray-800">
+                        <i class="fas fa-credit-card text-success"></i>
+                        Pagamento Múltiplo
+                    </h1>
+                    <p class="text-muted mb-0">
+                        Pague múltiplas vendas de um cliente em uma única operação
+                    </p>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('vendas.index') }}">Vendas</a>
+                            </li>
+                            <li class="breadcrumb-item active">Pagamento Múltiplo</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <a href="{{ url_for('vendas.index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="d-none d-md-inline">Voltar</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        
+        <!-- Main Form -->
+        <div class="col-xl-8 col-lg-7">
+            
+            <!-- Client Selection -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-user"></i>
+                        Seleção do Cliente
+                    </h6>
+                </div>
+                <div class="card-body">
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <label for="pagamento_cliente_search" class="form-label">
+                                Buscar Cliente <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="pagamento_cliente_search" 
+                                   placeholder="Digite o nome do cliente..."
+                                   autocomplete="off"
+                                   required>
+                            <input type="hidden" id="cliente_id_pagamento" name="cliente_id" required>
+                            <small class="form-text text-muted">
+                                Digite pelo menos 2 caracteres para buscar
+                            </small>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <a href="{{ url_for('clientes.create') }}" 
+                               class="btn btn-outline-primary" 
+                               target="_blank">
+                                <i class="fas fa-user-plus mr-2"></i>
+                                Novo Cliente
+                            </a>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <!-- Sales List -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-warning">
+                        <i class="fas fa-list"></i>
+                        Vendas em Aberto
+                    </h6>
+                    <div>
+                        <span class="badge badge-info" id="vendas-selecionadas-count">0</span>
+                        vendas selecionadas
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    
+                    <div id="vendas-em-aberto">
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-search fa-3x mb-3"></i>
+                            <p>Selecione um cliente para ver as vendas em aberto</p>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <!-- Payment Form -->
+            <div class="card shadow mb-4" id="payment-form-card" style="display: none;">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-money-bill-wave"></i>
+                        Dados do Pagamento
+                    </h6>
+                </div>
+                <div class="card-body">
+                    
+                    <form method="POST" id="pagamento_multiplo_form" class="needs-validation" novalidate>
+                        <input type="hidden" id="cliente_id" name="cliente_id">
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="valor_pago" class="form-label">
+                                        Valor Total Pago <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">R$</span>
+                                        </div>
+                                        <input type="text" 
+                                               class="form-control money-input" 
+                                               id="valor_pago" 
+                                               name="valor_pago" 
+                                               placeholder="0,00"
+                                               required>
+                                        <div class="input-group-append">
+                                            <button type="button" 
+                                                    class="btn btn-outline-secondary" 
+                                                    id="aplicarPagamentoTodas"
+                                                    title="Aplicar valor a todas as vendas selecionadas">
+                                                <i class="fas fa-calculator"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Valor que será distribuído entre as vendas selecionadas
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="forma_pagamento" class="form-label">
+                                        Forma de Pagamento <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-control" id="forma_pagamento" name="forma_pagamento" required>
+                                        <option value="">Selecione...</option>
+                                        {% for forma in formas_pagamento %}
+                                        <option value="{{ forma[0] }}" {% if forma[0] == 'dinheiro' %}selected{% endif %}>
+                                            {{ forma[1] }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Cash Payment Fields -->
+                        <div id="valor-recebido-group" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="valor_recebido" class="form-label">
+                                            Valor Recebido
+                                        </label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">R$</span>
+                                            </div>
+                                            <input type="text" 
+                                                   class="form-control money-input" 
+                                                   id="valor_recebido" 
+                                                   name="valor_recebido" 
+                                                   placeholder="0,00">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label">Troco</label>
+                                        <div id="troco-info" class="d-none">
+                                            <div class="alert alert-success mb-0">
+                                                <i class="fas fa-hand-holding-usd mr-2"></i>
+                                                <strong>Troco: <span id="troco">R$ 0,00</span></strong>
+                                            </div>
+                                        </div>
+                                        <div id="troco-placeholder" class="form-control-plaintext text-muted">
+                                            Será calculado automaticamente
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Observations -->
+                        <div class="form-group">
+                            <label for="observacoes" class="form-label">
+                                Observações (Opcional)
+                            </label>
+                            <textarea class="form-control" 
+                                      id="observacoes" 
+                                      name="observacoes" 
+                                      rows="3" 
+                                      placeholder="Observações sobre o pagamento múltiplo..."></textarea>
+                        </div>
+                        
+                        <!-- Print Receipt -->
+                        <div class="form-group">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" 
+                                       class="custom-control-input" 
+                                       id="imprimir_comprovante" 
+                                       name="imprimir_comprovante" 
+                                       checked>
+                                <label class="custom-control-label" for="imprimir_comprovante">
+                                    <i class="fas fa-print mr-1"></i>
+                                    Imprimir comprovante após o pagamento
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Submit Buttons -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button type="submit" 
+                                        class="btn btn-success btn-lg btn-block" 
+                                        id="processarPagamentoBtn" 
+                                        disabled>
+                                    <i class="fas fa-check mr-2"></i>
+                                    Processar Pagamento
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="button" 
+                                        class="btn btn-outline-secondary btn-lg btn-block"
+                                        onclick="location.reload()">
+                                    <i class="fas fa-redo mr-2"></i>
+                                    Limpar Formulário
+                                </button>
+                            </div>
+                        </div>
+                        
+                    </form>
+                    
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-xl-4 col-lg-5">
+            
+            <!-- Payment Summary -->
+            <div class="card shadow mb-4 sticky-top" style="top: 20px;">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-calculator"></i>
+                        Resumo do Pagamento
+                    </h6>
+                </div>
+                <div class="card-body text-center">
+                    
+                    <div class="mb-3">
+                        <label class="text-muted small">TOTAL SELECIONADO</label>
+                        <div class="display-4 font-weight-bold text-warning" id="total-selecionado">
+                            R$ 0,00
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="text-muted small">VENDAS</div>
+                            <div class="h5 font-weight-bold" id="vendas-count">0</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small">RESTANTE</div>
+                            <div class="h5 font-weight-bold text-info" id="valor-restante">
+                                R$ 0,00
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <small>
+                            <strong>Dica:</strong> Se o valor pago for maior que o total selecionado, 
+                            uma nova nota será criada com o restante.
+                        </small>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-bolt"></i>
+                        Ações Rápidas
+                    </h6>
+                </div>
+                <div class="card-body">
+                    
+                    <div class="d-grid gap-2">
+                        
+                        <button type="button" 
+                                class="btn btn-outline-primary btn-sm" 
+                                id="selecionarTodas"
+                                disabled>
+                            <i class="fas fa-check-square mr-2"></i>
+                            Selecionar Todas
+                        </button>
+                        
+                        <button type="button" 
+                                class="btn btn-outline-secondary btn-sm" 
+                                id="limparSelecao"
+                                disabled>
+                            <i class="fas fa-square mr-2"></i>
+                            Limpar Seleção
+                        </button>
+                        
+                        <button type="button" 
+                                class="btn btn-outline-warning btn-sm" 
+                                id="selecionarVencidas"
+                                disabled>
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            Apenas Vencidas
+                        </button>
+                        
+                        <hr>
+                        
+                        <a href="{{ url_for('vendas.create') }}" 
+                           class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-plus mr-2"></i>
+                            Nova Venda
+                        </a>
+                        
+                        <a href="{{ url_for('vendas.index') }}" 
+                           class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-list mr-2"></i>
+                            Ver Todas as Vendas
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <!-- Instructions -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-secondary">
+                        <i class="fas fa-question-circle"></i>
+                        Como Usar
+                    </h6>
+                </div>
+                <div class="card-body">
+                    
+                    <ol class="small text-muted">
+                        <li class="mb-2">
+                            <strong>Selecione o cliente</strong> digitando o nome na busca
+                        </li>
+                        <li class="mb-2">
+                            <strong>Marque as vendas</strong> que deseja pagar nas caixas de seleção
+                        </li>
+                        <li class="mb-2">
+                            <strong>Ajuste os valores</strong> individuais se necessário
+                        </li>
+                        <li class="mb-2">
+                            <strong>Informe o valor total</strong> que o cliente está pagando
+                        </li>
+                        <li class="mb-0">
+                            <strong>Confirme o pagamento</strong> e imprima o comprovante
+                        </li>
+                    </ol>
+                    
+                </div>
+            </div>
+            
+        </div>
+        
+    </div>
+    
+</div>
+
+<!-- Template para linha de venda -->
+<script type="text/template" id="venda-row-template">
+<tr class="<%- statusClass %>">
+    <td>
+        <div class="custom-control custom-checkbox">
+            <input type="checkbox" class="custom-control-input venda-checkbox" 
+                   id="venda_<%- venda.id %>" name="vendas[<%- index %>][selecionada]"
+                   data-venda-id="<%- venda.id %>">
+            <label class="custom-control-label" for="venda_<%- venda.id %>"></label>
+        </div>
+        <input type="hidden" name="vendas[<%- index %>][venda_id]" value="<%- venda.id %>">
+    </td>
+    <td>
+        <strong>#<%- venda.id %></strong>
+        <br>
+        <small class="text-muted"><%- venda.data_venda %></small>
+    </td>
+    <td>
+        <small><%- venda.itens_resumo %></small>
+    </td>
+    <td><%- venda.total_formatado %></td>
+    <td><%- venda.valor_pago_formatado %></td>
+    <td>
+        <strong><%- venda.valor_restante_formatado %></strong>
+    </td>
+    <td>
+        <input type="text" class="form-control form-control-sm money-input valor-pagar"
+               name="vendas[<%- index %>][valor_pago]" 
+               value="<%- venda.valor_restante_formatado %>"
+               data-max="<%- venda.valor_restante %>">
+    </td>
+    <td>
+        <small class="text-muted">
+            <%- venda.data_vencimento %>
+            <%- venda.vencido_text %>
+        </small>
+    </td>
+</tr>
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/vendas.js') }}"></script>
+
+<script>
+$(document).ready(function() {
+    
+    // Ações rápidas
+    $('#selecionarTodas').click(function() {
+        $('.venda-checkbox').prop('checked', true).trigger('change');
+    });
+    
+    $('#limparSelecao').click(function() {
+        $('.venda-checkbox').prop('checked', false).trigger('change');
+    });
+    
+    $('#selecionarVencidas').click(function() {
+        $('.venda-checkbox').prop('checked', false);
+        $('.table-danger .venda-checkbox').prop('checked', true).trigger('change');
+    });
+    
+    // Atualizar resumo quando vendas forem carregadas
+    $(document).on('vendas-loaded', function() {
+        $('#selecionarTodas, #limparSelecao, #selecionarVencidas').prop('disabled', false);
+    });
+    
+    // Mostrar formulário quando vendas forem selecionadas
+    $(document).on('change', '.venda-checkbox', function() {
+        const selecionadas = $('.venda-checkbox:checked').length;
+        
+        if (selecionadas > 0) {
+            $('#payment-form-card').slideDown();
+        } else {
+            $('#payment-form-card').slideUp();
+        }
+    });
+    
+    // Calcular restante
+    $(document).on('input', '#valor_pago', function() {
+        const valorPago = App.utils.parseMoney($(this).val()) || 0;
+        const totalSelecionado = App.utils.parseMoney($('#total-selecionado').text()) || 0;
+        const restante = valorPago - totalSelecionado;
+        
+        $('#valor-restante').text(App.utils.formatMoney(Math.max(0, restante)));
+        
+        if (restante > 0) {
+            $('#valor-restante').removeClass('text-info').addClass('text-warning');
+        } else {
+            $('#valor-restante').removeClass('text-warning').addClass('text-info');
+        }
+    });
+    
+    // Focus no campo de busca
+    $('#pagamento_cliente_search').focus();
+});
+</script>
+{% endblock %>

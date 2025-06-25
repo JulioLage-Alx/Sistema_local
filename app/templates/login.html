@@ -1,74 +1,218 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="Sistema de Crediário para Açougue - Login">
+    <meta name="author" content="Sistema Crediário Açougue">
+    
+    <title>Login - Sistema Crediário Açougue</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    
+    <!-- CSS -->
+    <!-- Bootstrap 4.6 CSS -->
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link href="{{ url_for('static', filename='css/fontawesome.min.css') }}" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+        }
+        
+        .login-container {
+            height: 100vh;
+        }
+        
+        .login-card {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        
+        .login-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 1rem 1rem 0 0;
+        }
+        
+        .btn-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.75rem 2rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-login:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.2);
+        }
+        
+        .form-control {
+            border-radius: 0.5rem;
+            border: 1px solid #e0e6ed;
+            padding: 0.75rem 1rem;
+        }
+        
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .input-group-text {
+            background-color: #f8f9fc;
+            border-color: #e0e6ed;
+            border-radius: 0.5rem 0 0 0.5rem;
+        }
+        
+        .logo-container {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+        }
+        
+        .system-info {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .loading-spinner {
+            display: none;
+        }
+        
+        .alert {
+            border-radius: 0.5rem;
+            border: none;
+        }
+    </style>
+</head>
 
-{% block title %}Login - Sistema Crediário Açougue{% endblock %}
-
-{% block body_class %}bg-primary{% endblock %}
-
-{% block content %}
-<div class="login-container">
-    <div class="container">
-        <div class="row justify-content-center min-vh-100 align-items-center">
-            <div class="col-md-6 col-lg-5 col-xl-4">
+<body>
+    <div class="container-fluid login-container d-flex align-items-center justify-content-center">
+        <div class="row w-100 justify-content-center">
+            <div class="col-xl-4 col-lg-5 col-md-6 col-sm-8 col-10">
                 
                 <!-- Login Card -->
-                <div class="card shadow-lg border-0">
+                <div class="card login-card fade-in">
+                    
+                    <!-- Card Header -->
+                    <div class="card-header login-header text-center py-4">
+                        <!-- Logo -->
+                        <div class="logo-container">
+                            <i class="fas fa-store fa-2x text-primary"></i>
+                        </div>
+                        
+                        <h3 class="mb-0 font-weight-bold">Sistema Crediário</h3>
+                        <p class="mb-0 opacity-75">Açougue</p>
+                    </div>
+                    
+                    <!-- Card Body -->
                     <div class="card-body p-5">
                         
-                        <!-- Logo/Header -->
-                        <div class="text-center mb-4">
-                            <div class="login-logo mb-3">
-                                <i class="fas fa-store fa-3x text-primary"></i>
-                            </div>
-                            <h3 class="card-title font-weight-bold text-dark">
-                                Sistema Açougue
-                            </h3>
-                            <p class="text-muted mb-0">
-                                Gestão de Crediário
-                            </p>
-                        </div>
+                        <!-- Flash Messages -->
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} fade show" role="alert">
+                                        {% if category == 'success' %}
+                                            <i class="fas fa-check-circle me-2"></i>
+                                        {% elif category == 'danger' or category == 'error' %}
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                        {% elif category == 'warning' %}
+                                            <i class="fas fa-exclamation-circle me-2"></i>
+                                        {% elif category == 'info' %}
+                                            <i class="fas fa-info-circle me-2"></i>
+                                        {% endif %}
+                                        {{ message }}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
                         
                         <!-- Login Form -->
                         <form method="POST" id="loginForm" novalidate>
+                            <!-- Hidden next field -->
+                            {% if next %}
+                                <input type="hidden" name="next" value="{{ next }}">
+                            {% endif %}
                             
-                            <!-- Username -->
-                            <div class="form-group">
-                                <label for="username" class="form-label font-weight-semibold">
+                            <!-- Username Field -->
+                            <div class="form-group mb-4">
+                                <label for="username" class="form-label font-weight-medium">
                                     <i class="fas fa-user text-muted mr-2"></i>
                                     Usuário
                                 </label>
-                                <input type="text" 
-                                       class="form-control form-control-lg" 
-                                       id="username" 
-                                       name="username" 
-                                       placeholder="Digite seu usuário"
-                                       value="{{ request.form.username if request.form.username else '' }}"
-                                       required
-                                       autocomplete="username"
-                                       autofocus>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-user text-muted"></i>
+                                        </span>
+                                    </div>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="username" 
+                                           name="username" 
+                                           placeholder="Digite seu usuário"
+                                           value="{{ username or '' }}"
+                                           required 
+                                           autofocus>
+                                </div>
                                 <div class="invalid-feedback">
                                     Por favor, digite seu usuário.
                                 </div>
                             </div>
                             
-                            <!-- Password -->
-                            <div class="form-group">
-                                <label for="password" class="form-label font-weight-semibold">
+                            <!-- Password Field -->
+                            <div class="form-group mb-4">
+                                <label for="password" class="form-label font-weight-medium">
                                     <i class="fas fa-lock text-muted mr-2"></i>
                                     Senha
                                 </label>
                                 <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-lock text-muted"></i>
+                                        </span>
+                                    </div>
                                     <input type="password" 
-                                           class="form-control form-control-lg" 
+                                           class="form-control" 
                                            id="password" 
                                            name="password" 
                                            placeholder="Digite sua senha"
-                                           required
-                                           autocomplete="current-password">
+                                           required>
                                     <div class="input-group-append">
                                         <button class="btn btn-outline-secondary" 
                                                 type="button" 
                                                 id="togglePassword"
-                                                tabindex="-1">
+                                                title="Mostrar/Ocultar senha">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </div>
@@ -79,244 +223,181 @@
                             </div>
                             
                             <!-- Remember Me -->
-                            <div class="form-group">
+                            <div class="form-group mb-4">
                                 <div class="custom-control custom-checkbox">
                                     <input type="checkbox" 
                                            class="custom-control-input" 
-                                           id="remember" 
-                                           name="remember"
-                                           {{ 'checked' if request.form.remember else '' }}>
-                                    <label class="custom-control-label" for="remember">
-                                        Lembrar de mim
+                                           id="remember_me" 
+                                           name="remember_me">
+                                    <label class="custom-control-label" for="remember_me">
+                                        Lembrar-me neste computador
                                     </label>
                                 </div>
                             </div>
                             
                             <!-- Submit Button -->
                             <div class="form-group mb-0">
-                                <button type="submit" 
-                                        class="btn btn-primary btn-lg btn-block"
-                                        id="loginButton">
-                                    <i class="fas fa-sign-in-alt mr-2"></i>
-                                    Entrar
+                                <button type="submit" class="btn btn-primary btn-login btn-block">
+                                    <span class="button-text">
+                                        <i class="fas fa-sign-in-alt mr-2"></i>
+                                        Entrar
+                                    </span>
+                                    <span class="loading-spinner">
+                                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                                        Entrando...
+                                    </span>
                                 </button>
                             </div>
                             
                         </form>
                         
                     </div>
-                </div>
-                
-                <!-- System Info -->
-                <div class="text-center mt-4">
-                    <small class="text-white-50">
-                        <i class="fas fa-info-circle mr-1"></i>
-                        Sistema local - Versão 1.0.0
-                    </small>
-                </div>
-                
-                <!-- Default Credentials Info -->
-                {% if config.DEBUG %}
-                <div class="card mt-3 bg-warning">
-                    <div class="card-body p-3">
-                        <h6 class="card-title mb-2">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            Modo Desenvolvimento
-                        </h6>
-                        <small>
-                            <strong>Usuário:</strong> admin<br>
-                            <strong>Senha:</strong> admin123
+                    
+                    <!-- Card Footer -->
+                    <div class="card-footer bg-light text-center py-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Sistema local - Use as credenciais configuradas
                         </small>
                     </div>
+                    
                 </div>
-                {% endif %}
+                
+                <!-- System Information -->
+                <div class="text-center text-white system-info">
+                    <p class="mb-1">
+                        <i class="fas fa-shield-alt mr-2"></i>
+                        Sistema seguro para gestão de crediário
+                    </p>
+                    <small class="opacity-75">
+                        Versão 1.0.0 - © 2025 Sistema Crediário Açougue
+                    </small>
+                </div>
                 
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
-
-{% block extra_css %}
-<style>
-/* Login Page Styles */
-.login-container {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-}
-
-.login-logo {
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.05);
-    }
-    100% {
-        transform: scale(1);
-    }
-}
-
-.card {
-    border-radius: 1rem;
-    backdrop-filter: blur(10px);
-}
-
-.card-body {
-    background: rgba(255, 255, 255, 0.98);
-    border-radius: 1rem;
-}
-
-.form-control-lg {
-    border-radius: 0.5rem;
-    border: 2px solid #e9ecef;
-    transition: all 0.3s ease;
-}
-
-.form-control-lg:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    transform: translateY(-1px);
-}
-
-.btn-lg {
-    border-radius: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
-}
-
-.custom-control-label {
-    font-weight: 500;
-}
-
-/* Loading state */
-.btn-loading {
-    position: relative;
-    color: transparent !important;
-}
-
-.btn-loading::after {
-    content: '';
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    top: 50%;
-    left: 50%;
-    margin-left: -8px;
-    margin-top: -8px;
-    border: 2px solid #ffffff;
-    border-radius: 50%;
-    border-top-color: transparent;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* Mobile responsiveness */
-@media (max-width: 576px) {
-    .card-body {
-        padding: 2rem !important;
-    }
     
-    .login-logo i {
-        font-size: 2.5rem !important;
-    }
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    .card-body {
-        background: rgba(33, 37, 41, 0.95);
-        color: #fff;
-    }
+    <!-- JavaScript -->
+    <!-- jQuery 3.6 -->
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
     
-    .form-control-lg {
-        background-color: #495057;
-        border-color: #6c757d;
-        color: #fff;
-    }
+    <!-- Bootstrap 4.6 JavaScript -->
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
     
-    .form-control-lg::placeholder {
-        color: #adb5bd;
-    }
-}
-</style>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-$(document).ready(function() {
-    // Toggle password visibility
-    $('#togglePassword').click(function() {
-        const passwordField = $('#password');
-        const passwordFieldType = passwordField.attr('type');
-        const icon = $(this).find('i');
+    <!-- Login JavaScript -->
+    <script>
+        $(document).ready(function() {
+            
+            // Toggle password visibility
+            $('#togglePassword').click(function() {
+                const passwordField = $('#password');
+                const icon = $(this).find('i');
+                
+                if (passwordField.attr('type') === 'password') {
+                    passwordField.attr('type', 'text');
+                    icon.removeClass('fa-eye').addClass('fa-eye-slash');
+                } else {
+                    passwordField.attr('type', 'password');
+                    icon.removeClass('fa-eye-slash').addClass('fa-eye');
+                }
+            });
+            
+            // Form validation
+            $('#loginForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                const form = this;
+                const username = $('#username').val().trim();
+                const password = $('#password').val();
+                
+                // Reset validation
+                $('.form-control').removeClass('is-invalid');
+                
+                let isValid = true;
+                
+                // Validate username
+                if (!username) {
+                    $('#username').addClass('is-invalid');
+                    isValid = false;
+                }
+                
+                // Validate password
+                if (!password) {
+                    $('#password').addClass('is-invalid');
+                    isValid = false;
+                }
+                
+                if (isValid) {
+                    // Show loading state
+                    const submitBtn = $(form).find('button[type="submit"]');
+                    submitBtn.prop('disabled', true);
+                    submitBtn.find('.button-text').hide();
+                    submitBtn.find('.loading-spinner').show();
+                    
+                    // Submit form
+                    setTimeout(() => {
+                        form.submit();
+                    }, 500);
+                }
+            });
+            
+            // Auto-focus on first empty field
+            if (!$('#username').val()) {
+                $('#username').focus();
+            } else {
+                $('#password').focus();
+            }
+            
+            // Add enter key handler
+            $('#username, #password').keypress(function(e) {
+                if (e.which === 13) { // Enter key
+                    $('#loginForm').submit();
+                }
+            });
+            
+            // Auto-dismiss alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert').fadeOut('slow');
+            }, 5000);
+            
+            // Add animation classes
+            $('.login-card').addClass('fade-in');
+            
+        });
         
-        if (passwordFieldType === 'password') {
-            passwordField.attr('type', 'text');
-            icon.removeClass('fa-eye').addClass('fa-eye-slash');
-        } else {
-            passwordField.attr('type', 'password');
-            icon.removeClass('fa-eye-slash').addClass('fa-eye');
+        // Prevent back button after logout
+        if (window.history && window.history.pushState) {
+            $(window).on('popstate', function() {
+                window.history.pushState('forward', null, '#');
+                window.history.forward();
+            });
         }
-    });
-    
-    // Form validation
-    $('#loginForm').on('submit', function(e) {
-        const form = this;
         
-        if (!form.checkValidity()) {
+        // Clear form on page load (security)
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                $('#loginForm')[0].reset();
+            }
+        });
+        
+        // Disable right-click context menu on production
+        {% if not config.DEBUG %}
+        document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
-            e.stopPropagation();
-        } else {
-            // Add loading state
-            const submitButton = $('#loginButton');
-            submitButton.addClass('btn-loading').prop('disabled', true);
-        }
+        });
         
-        $(form).addClass('was-validated');
-    });
+        // Disable F12, Ctrl+Shift+I, Ctrl+U
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+                (e.ctrlKey && e.key === 'u')) {
+                e.preventDefault();
+            }
+        });
+        {% endif %}
+        
+    </script>
     
-    // Auto-focus on username field
-    $('#username').focus();
-    
-    // Handle keyboard shortcuts
-    $(document).on('keydown', function(e) {
-        // Ctrl + Enter to submit
-        if ((e.ctrlKey || e.metaKey) && e.keyCode === 13) {
-            $('#loginForm').submit();
-        }
-    });
-    
-    // Clear form validation on input
-    $('.form-control').on('input', function() {
-        $(this).removeClass('is-invalid');
-    });
-    
-    // Auto-fill username in development
-    if (window.APP_CONFIG.DEBUG && !$('#username').val()) {
-        $('#username').val('admin');
-    }
-});
-
-// Prevent back button after login attempt
-window.history.pushState(null, "", window.location.href);
-window.onpopstate = function() {
-    window.history.pushState(null, "", window.location.href);
-};
-</script>
-{% endblock %}
+</body>
+</html>

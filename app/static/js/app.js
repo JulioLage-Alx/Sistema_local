@@ -1,369 +1,193 @@
-/* ============================================
-   Sistema Crediário Açougue - Main JavaScript
-   ============================================ */
+/**
+ * Sistema Crediário Açougue - JavaScript Global
+ * Funcionalidades globais da aplicação
+ */
 
-// Namespace da aplicação
-window.App = {
-    config: {
-        baseUrl: '',
-        csrfToken: '',
-        userLogged: false,
-        debug: false
-    },
+// Namespace global da aplicação
+window.App = window.App || {};
+
+// Configurações globais
+App.config = {
+    baseUrl: window.appConfig?.baseUrl || '/',
+    staticUrl: window.appConfig?.staticUrl || '/static/',
+    csrfToken: window.appConfig?.csrfToken || '',
+    currentUser: window.appConfig?.currentUser || '',
+    debug: window.appConfig?.debug || false,
+    locale: 'pt-BR',
+    currency: 'BRL',
     
-    // Inicialização da aplicação
-    init: function() {
-        this.loadConfig();
-        this.initComponents();
-        this.bindEvents();
-        this.initMasks();
-        this.initTooltips();
-        this.initFormValidation();
-        
-        if (this.config.debug) {
-            console.log('App initialized successfully');
-        }
-    },
+    // Configurações de UI
+    fadeSpeed: 300,
+    loadingDelay: 100,
+    toastTimeout: 5000,
+    sessionCheckInterval: 300000, // 5 minutos
     
-    // Carregar configurações globais
-    loadConfig: function() {
-        if (window.APP_CONFIG) {
-            this.config = Object.assign(this.config, window.APP_CONFIG);
-        }
-    },
+    // Configurações de validação
+    maxFileSize: 16 * 1024 * 1024, // 16MB
+    allowedFileTypes: ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'],
     
-    // Inicializar componentes
-    initComponents: function() {
-        // Configurar moment.js para português
-        if (typeof moment !== 'undefined') {
-            moment.locale('pt-br');
-        }
-        
-        // Configurar Chart.js padrões
-        if (typeof Chart !== 'undefined') {
-            Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
-            Chart.defaults.color = '#858796';
-        }
-        
-        // Auto-hide alerts após 5 segundos
-        setTimeout(() => {
-            $('.alert:not(.alert-permanent)').fadeOut();
-        }, 5000);
-        
-        // Inicializar dropdowns
-        $('.dropdown-toggle').dropdown();
-    },
-    
-    // Vincular eventos globais
-    bindEvents: function() {
-        // Confirmação de exclusão
-        $(document).on('click', '[data-confirm]', this.handleConfirmAction);
-        
-        // Loading em formulários
-        $(document).on('submit', 'form[data-loading]', this.handleFormLoading);
-        
-        // AJAX setup
-        this.setupAjax();
-        
-        // Teclas de atalho
-        this.bindKeyboardShortcuts();
-        
-        // Auto-save para alguns formulários
-        this.initAutoSave();
-    },
-    
-    // Configurar máscaras de input
-    initMasks: function() {
-        // CPF
-        $('.mask-cpf').mask('000.000.000-00', {
-            reverse: false,
-            placeholder: '___.___.___-__'
-        });
-        
-        // Telefone
-        $('.mask-phone').mask('(00) 00000-0000', {
-            placeholder: '(__) _____-____'
-        });
-        
-        // CEP
-        $('.mask-cep').mask('00000-000', {
-            placeholder: '_____-___'
-        });
-        
-        // Dinheiro
-        $('.mask-money').mask('#.##0,00', {
-            reverse: true,
-            placeholder: '0,00'
-        });
-        
-        // Quantidade/Peso
-        $('.mask-quantity').mask('#.##0,000', {
-            reverse: true,
-            placeholder: '0,000'
-        });
-        
-        // Data
-        $('.mask-date').mask('00/00/0000', {
-            placeholder: '__/__/____'
-        });
-    },
-    
-    // Inicializar tooltips
-    initTooltips: function() {
-        $('[data-toggle="tooltip"]').tooltip();
-        $('[data-toggle="popover"]').popover();
-    },
-    
-    // Validação de formulários
-    initFormValidation: function() {
-        // Bootstrap validation
-        $('.needs-validation').on('submit', function(e) {
-            if (!this.checkValidity()) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            $(this).addClass('was-validated');
-        });
-        
-        // Validação customizada de CPF
-        $('.validate-cpf').on('blur', function() {
-            const cpf = $(this).val().replace(/\D/g, '');
-            if (cpf && !App.utils.validateCPF(cpf)) {
-                $(this).addClass('is-invalid');
-                $(this).siblings('.invalid-feedback').text('CPF inválido');
-            } else {
-                $(this).removeClass('is-invalid');
-            }
-        });
-        
-        // Validação de email
-        $('.validate-email').on('blur', function() {
-            const email = $(this).val();
-            if (email && !App.utils.validateEmail(email)) {
-                $(this).addClass('is-invalid');
-                $(this).siblings('.invalid-feedback').text('Email inválido');
-            } else {
-                $(this).removeClass('is-invalid');
-            }
-        });
-    },
-    
-    // Configurar AJAX
-    setupAjax: function() {
-        // CSRF Token para requisições AJAX
-        $.ajaxSetup({
-            beforeSend: function(xhr, settings) {
-                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
-                    xhr.setRequestHeader("X-CSRFToken", App.config.csrfToken);
-                }
-            }
-        });
-        
-        // Loading global para AJAX
-        $(document).ajaxStart(function() {
-            App.ui.showLoading();
-        }).ajaxStop(function() {
-            App.ui.hideLoading();
-        });
-        
-        // Tratamento de erros AJAX
-        $(document).ajaxError(function(event, xhr, settings, thrownError) {
-            App.ui.hideLoading();
-            
-            if (xhr.status === 401) {
-                App.ui.showAlert('Sessão expirada. Faça login novamente.', 'warning');
-                setTimeout(() => {
-                    window.location.href = '/auth/login';
-                }, 2000);
-            } else if (xhr.status === 403) {
-                App.ui.showAlert('Acesso negado.', 'danger');
-            } else if (xhr.status >= 500) {
-                App.ui.showAlert('Erro interno do servidor. Tente novamente.', 'danger');
-            }
-        });
-    },
-    
-    // Atalhos de teclado
-    bindKeyboardShortcuts: function() {
-        $(document).on('keydown', function(e) {
-            // Ctrl + S para salvar formulários
-            if ((e.ctrlKey || e.metaKey) && e.keyCode === 83) {
-                e.preventDefault();
-                const form = $('form:visible').first();
-                if (form.length) {
-                    form.submit();
-                }
-            }
-            
-            // Esc para fechar modais
-            if (e.keyCode === 27) {
-                $('.modal:visible').modal('hide');
-            }
-            
-            // Ctrl + N para nova entrada (se aplicável)
-            if ((e.ctrlKey || e.metaKey) && e.keyCode === 78) {
-                const newBtn = $('[data-action="new"]:visible').first();
-                if (newBtn.length) {
-                    e.preventDefault();
-                    newBtn.click();
-                }
-            }
-        });
-    },
-    
-    // Auto-save para formulários longos
-    initAutoSave: function() {
-        let autoSaveTimeout;
-        
-        $('form[data-autosave]').on('input change', function() {
-            clearTimeout(autoSaveTimeout);
-            const form = $(this);
-            
-            autoSaveTimeout = setTimeout(() => {
-                const formData = form.serialize();
-                const key = 'autosave_' + (form.data('autosave-key') || window.location.pathname);
-                
-                try {
-                    localStorage.setItem(key, formData);
-                    App.ui.showToast('Rascunho salvo automaticamente', 'info', 2000);
-                } catch (e) {
-                    console.warn('Erro ao salvar rascunho:', e);
-                }
-            }, 30000); // Auto-save a cada 30 segundos
-        });
-        
-        // Restaurar dados salvos
-        $('form[data-autosave]').each(function() {
-            const form = $(this);
-            const key = 'autosave_' + (form.data('autosave-key') || window.location.pathname);
-            
-            try {
-                const savedData = localStorage.getItem(key);
-                if (savedData) {
-                    App.ui.showAlert(
-                        'Dados salvos automaticamente foram encontrados. <a href="#" id="restore-autosave">Restaurar?</a>',
-                        'info'
-                    );
-                    
-                    $('#restore-autosave').on('click', function(e) {
-                        e.preventDefault();
-                        App.utils.populateForm(form, savedData);
-                        localStorage.removeItem(key);
-                        $(this).closest('.alert').fadeOut();
-                    });
-                }
-            } catch (e) {
-                console.warn('Erro ao recuperar rascunho:', e);
-            }
-        });
-    },
-    
-    // Manipulação de ação de confirmação
-    handleConfirmAction: function(e) {
-        e.preventDefault();
-        const element = $(this);
-        const message = element.data('confirm') || 'Tem certeza que deseja realizar esta ação?';
-        const title = element.data('confirm-title') || 'Confirmação';
-        const action = element.attr('href') || element.data('action');
-        
-        App.ui.showConfirm(message, title, function() {
-            if (action) {
-                if (element.is('form') || element.closest('form').length) {
-                    element.closest('form').submit();
-                } else {
-                    window.location.href = action;
-                }
-            }
-        });
-    },
-    
-    // Loading em formulários
-    handleFormLoading: function(e) {
-        const form = $(this);
-        const submitBtn = form.find('button[type="submit"]');
-        
-        submitBtn.prop('disabled', true);
-        submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Processando...');
-        
-        // Restaurar estado após 10 segundos (fallback)
-        setTimeout(() => {
-            submitBtn.prop('disabled', false);
-            submitBtn.html(submitBtn.data('original-text') || 'Salvar');
-        }, 10000);
+    // URLs da API
+    endpoints: {
+        checkSession: '/auth/check-session',
+        extendSession: '/auth/extend-session',
+        alerts: '/api/alerts',
+        clientesBuscar: '/api/clientes/buscar'
     }
 };
 
-// Utilitários
+// Utilitários globais
 App.utils = {
-    // Validar CPF
-    validateCPF: function(cpf) {
-        cpf = cpf.replace(/\D/g, '');
-        
-        if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) {
-            return false;
+    
+    /**
+     * Formatar valor como moeda brasileira
+     */
+    formatMoney: function(value, includeSymbol = true) {
+        if (value === null || value === undefined || isNaN(value)) {
+            return includeSymbol ? 'R$ 0,00' : '0,00';
         }
+        
+        const formatter = new Intl.NumberFormat('pt-BR', {
+            style: includeSymbol ? 'currency' : 'decimal',
+            currency: 'BRL',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        
+        return formatter.format(value);
+    },
+    
+    /**
+     * Converter string de moeda para número
+     */
+    parseMoney: function(value) {
+        if (typeof value === 'number') {
+            return value;
+        }
+        
+        if (!value || typeof value !== 'string') {
+            return 0;
+        }
+        
+        // Remover símbolos e converter vírgula para ponto
+        const cleanValue = value
+            .replace(/[R$\s]/g, '')
+            .replace(/\./g, '')
+            .replace(',', '.');
+        
+        const parsed = parseFloat(cleanValue);
+        return isNaN(parsed) ? 0 : parsed;
+    },
+    
+    /**
+     * Formatar CPF
+     */
+    formatCPF: function(value) {
+        if (!value) return '';
+        
+        const cpf = value.replace(/\D/g, '');
+        if (cpf.length <= 11) {
+            return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        }
+        return value;
+    },
+    
+    /**
+     * Formatar telefone
+     */
+    formatPhone: function(value) {
+        if (!value) return '';
+        
+        const phone = value.replace(/\D/g, '');
+        if (phone.length === 11) {
+            return phone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+        } else if (phone.length === 10) {
+            return phone.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+        }
+        return value;
+    },
+    
+    /**
+     * Validar CPF
+     */
+    validateCPF: function(cpf) {
+        if (!cpf) return false;
+        
+        const cleanCPF = cpf.replace(/\D/g, '');
+        
+        if (cleanCPF.length !== 11) return false;
+        if (/^(\d)\1{10}$/.test(cleanCPF)) return false;
         
         let sum = 0;
         for (let i = 0; i < 9; i++) {
-            sum += parseInt(cpf.charAt(i)) * (10 - i);
+            sum += parseInt(cleanCPF.charAt(i)) * (10 - i);
         }
         
         let remainder = 11 - (sum % 11);
         if (remainder === 10 || remainder === 11) remainder = 0;
-        if (remainder !== parseInt(cpf.charAt(9))) return false;
+        if (remainder !== parseInt(cleanCPF.charAt(9))) return false;
         
         sum = 0;
         for (let i = 0; i < 10; i++) {
-            sum += parseInt(cpf.charAt(i)) * (11 - i);
+            sum += parseInt(cleanCPF.charAt(i)) * (11 - i);
         }
         
         remainder = 11 - (sum % 11);
         if (remainder === 10 || remainder === 11) remainder = 0;
+        if (remainder !== parseInt(cleanCPF.charAt(10))) return false;
         
-        return remainder === parseInt(cpf.charAt(10));
+        return true;
     },
     
-    // Validar email
+    /**
+     * Validar email
+     */
     validateEmail: function(email) {
-        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return regex.test(email);
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
     },
     
-    // Formatar dinheiro
-    formatMoney: function(value) {
-        return parseFloat(value).toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        });
+    /**
+     * Gerar slug a partir de string
+     */
+    slugify: function(text) {
+        return text
+            .toString()
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/[^\w\-]+/g, '')
+            .replace(/\-\-+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
     },
     
-    // Converter dinheiro para número
-    parseMoney: function(value) {
-        return parseFloat(value.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+    /**
+     * Escapar HTML
+     */
+    escapeHtml: function(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
     },
     
-    // Formatar data
-    formatDate: function(date, format = 'DD/MM/YYYY') {
-        return moment(date).format(format);
-    },
-    
-    // Popular formulário com dados
-    populateForm: function(form, data) {
-        if (typeof data === 'string') {
-            // Se data é uma query string
-            const params = new URLSearchParams(data);
-            params.forEach((value, key) => {
-                form.find(`[name="${key}"]`).val(value);
-            });
-        } else {
-            // Se data é um objeto
-            Object.keys(data).forEach(key => {
-                form.find(`[name="${key}"]`).val(data[key]);
-            });
+    /**
+     * Truncar texto
+     */
+    truncate: function(text, length = 50, suffix = '...') {
+        if (!text || text.length <= length) {
+            return text;
         }
+        return text.substring(0, length - suffix.length) + suffix;
     },
     
-    // Debounce
+    /**
+     * Debounce função
+     */
     debounce: function(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -376,222 +200,574 @@ App.utils = {
         };
     },
     
-    // Gerar ID único
-    generateId: function() {
-        return '_' + Math.random().toString(36).substr(2, 9);
+    /**
+     * Throttle função
+     */
+    throttle: function(func, limit) {
+        let inThrottle;
+        return function() {
+            const args = arguments;
+            const context = this;
+            if (!inThrottle) {
+                func.apply(context, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        };
     }
 };
 
-// Interface do usuário
+// Componentes de UI
 App.ui = {
-    // Mostrar loading
+    
+    /**
+     * Mostrar loading overlay
+     */
     showLoading: function(message = 'Carregando...') {
         const overlay = $('#loading-overlay');
-        if (overlay.length) {
-            overlay.find('.loading-spinner div').last().text(message);
-            overlay.fadeIn();
-        }
+        overlay.find('p').text(message);
+        overlay.fadeIn(App.config.fadeSpeed);
     },
     
-    // Esconder loading
+    /**
+     * Ocultar loading overlay
+     */
     hideLoading: function() {
-        $('#loading-overlay').fadeOut();
+        $('#loading-overlay').fadeOut(App.config.fadeSpeed);
     },
     
-    // Mostrar alerta
-    showAlert: function(message, type = 'info', dismissible = true) {
+    /**
+     * Mostrar toast/notificação
+     */
+    showToast: function(message, type = 'info', timeout = null) {
         const alertClass = type === 'error' ? 'danger' : type;
-        const dismissibleHtml = dismissible ? `
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        ` : '';
+        const iconClass = {
+            'success': 'fa-check-circle',
+            'danger': 'fa-exclamation-triangle',
+            'warning': 'fa-exclamation-circle',
+            'info': 'fa-info-circle'
+        }[alertClass] || 'fa-info-circle';
         
-        const alertHtml = `
-            <div class="alert alert-${alertClass} alert-dismissible fade show" role="alert">
-                ${message}
-                ${dismissibleHtml}
+        const toast = $(`
+            <div class="alert alert-${alertClass} alert-dismissible fade show toast-notification" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
+                <i class="fas ${iconClass} mr-2"></i>
+                ${App.utils.escapeHtml(message)}
+                <button type="button" class="close" data-dismiss="alert">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-        `;
+        `);
         
-        const container = $('.container-fluid').first();
-        if (container.length) {
-            container.prepend(alertHtml);
-            
-            // Auto-remove após 5 segundos
-            if (dismissible) {
-                setTimeout(() => {
-                    container.find('.alert').first().fadeOut();
-                }, 5000);
-            }
-        }
+        $('body').append(toast);
+        
+        // Auto remove
+        setTimeout(() => {
+            toast.fadeOut(App.config.fadeSpeed, () => toast.remove());
+        }, timeout || App.config.toastTimeout);
     },
     
-    // Mostrar confirmação
-    showConfirm: function(message, title = 'Confirmação', callback = null) {
+    /**
+     * Mostrar modal de confirmação
+     */
+    showConfirm: function(options) {
+        const defaults = {
+            title: 'Confirmação',
+            message: 'Tem certeza que deseja realizar esta ação?',
+            confirmText: 'Confirmar',
+            cancelText: 'Cancelar',
+            confirmClass: 'btn-danger',
+            onConfirm: null,
+            onCancel: null
+        };
+        
+        const settings = $.extend({}, defaults, options);
+        
         const modal = $('#confirmModal');
-        if (modal.length) {
-            modal.find('.modal-title').text(title);
-            modal.find('.modal-body').html(message);
+        modal.find('.modal-title').text(settings.title);
+        modal.find('#confirmModalMessage').html(settings.message);
+        modal.find('#confirmModalButton')
+            .text(settings.confirmText)
+            .removeClass()
+            .addClass(`btn ${settings.confirmClass}`);
+        
+        // Limpar eventos anteriores
+        modal.find('#confirmModalButton').off('click');
+        
+        // Configurar eventos
+        modal.find('#confirmModalButton').on('click', function() {
+            modal.modal('hide');
+            if (settings.onConfirm && typeof settings.onConfirm === 'function') {
+                settings.onConfirm();
+            }
+        });
+        
+        modal.off('hidden.bs.modal').on('hidden.bs.modal', function() {
+            if (settings.onCancel && typeof settings.onCancel === 'function') {
+                settings.onCancel();
+            }
+        });
+        
+        modal.modal('show');
+    },
+    
+    /**
+     * Animar contadores
+     */
+    animateCounter: function(element, target, duration = 1000) {
+        const $element = $(element);
+        const start = parseInt($element.text()) || 0;
+        const increment = (target - start) / (duration / 16);
+        let current = start;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if ((increment > 0 && current >= target) || (increment < 0 && current <= target)) {
+                current = target;
+                clearInterval(timer);
+            }
+            $element.text(Math.round(current));
+        }, 16);
+    },
+    
+    /**
+     * Aplicar máscaras em campos
+     */
+    applyMasks: function(context = document) {
+        // Máscara de moeda
+        $(context).find('.money-mask').each(function() {
+            $(this).on('input', function() {
+                let value = $(this).val().replace(/\D/g, '');
+                value = (parseInt(value) / 100).toFixed(2);
+                value = App.utils.formatMoney(parseFloat(value), false);
+                $(this).val(value);
+            });
+        });
+        
+        // Máscara de CPF
+        $(context).find('.cpf-mask').on('input', function() {
+            $(this).val(App.utils.formatCPF($(this).val()));
+        });
+        
+        // Máscara de telefone
+        $(context).find('.phone-mask').on('input', function() {
+            $(this).val(App.utils.formatPhone($(this).val()));
+        });
+        
+        // Máscara de CEP
+        $(context).find('.cep-mask').on('input', function() {
+            let value = $(this).val().replace(/\D/g, '');
+            if (value.length <= 8) {
+                value = value.replace(/(\d{5})(\d{1,3})/, '$1-$2');
+            }
+            $(this).val(value);
+        });
+    },
+    
+    /**
+     * Configurar datepickers
+     */
+    setupDatepickers: function(context = document) {
+        // Configurar campos de data
+        $(context).find('input[type="date"]').each(function() {
+            if (!$(this).attr('max')) {
+                $(this).attr('max', new Date().toISOString().split('T')[0]);
+            }
+        });
+    },
+    
+    /**
+     * Configurar validação de formulários
+     */
+    setupFormValidation: function(form) {
+        $(form).on('submit', function(e) {
+            const $form = $(this);
+            let isValid = true;
             
-            modal.find('#confirmModalConfirm').off('click').on('click', function() {
-                modal.modal('hide');
-                if (callback) callback();
+            // Reset validation
+            $form.find('.is-invalid').removeClass('is-invalid');
+            
+            // Validar campos obrigatórios
+            $form.find('[required]').each(function() {
+                const $field = $(this);
+                const value = $field.val().trim();
+                
+                if (!value) {
+                    $field.addClass('is-invalid');
+                    isValid = false;
+                }
             });
             
-            modal.modal('show');
-        } else {
-            // Fallback para confirm nativo
-            if (confirm(`${title}\n\n${message}`)) {
-                if (callback) callback();
-            }
-        }
-    },
-    
-    // Mostrar toast (notification temporária)
-    showToast: function(message, type = 'info', duration = 3000) {
-        const toastId = App.utils.generateId();
-        const toastHtml = `
-            <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" 
-                 style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
-                <div class="toast-header bg-${type} text-white">
-                    <strong class="mr-auto">Sistema Açougue</strong>
-                    <button type="button" class="ml-2 mb-1 close text-white" data-dismiss="toast" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="toast-body">
-                    ${message}
-                </div>
-            </div>
-        `;
-        
-        $('body').append(toastHtml);
-        const toast = $(`#${toastId}`);
-        
-        toast.toast({
-            delay: duration
-        }).toast('show');
-        
-        // Remover do DOM após esconder
-        toast.on('hidden.bs.toast', function() {
-            $(this).remove();
-        });
-    },
-    
-    // Atualizar contador de badge
-    updateBadge: function(selector, count) {
-        const badge = $(selector);
-        if (badge.length) {
-            if (count > 0) {
-                badge.text(count).show();
-            } else {
-                badge.hide();
-            }
-        }
-    }
-};
-
-// API Helper
-App.api = {
-    // GET request
-    get: function(url, data = {}) {
-        return $.get(url, data);
-    },
-    
-    // POST request
-    post: function(url, data = {}) {
-        return $.post(url, data);
-    },
-    
-    // PUT request
-    put: function(url, data = {}) {
-        return $.ajax({
-            url: url,
-            type: 'PUT',
-            data: data
-        });
-    },
-    
-    // DELETE request
-    delete: function(url) {
-        return $.ajax({
-            url: url,
-            type: 'DELETE'
-        });
-    },
-    
-    // Upload de arquivo
-    upload: function(url, formData) {
-        return $.ajax({
-            url: url,
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false
-        });
-    }
-};
-
-// Módulo de Vendas
-App.vendas = {
-    // Adicionar item à venda
-    adicionarItem: function() {
-        const template = $('#item-template').html();
-        const container = $('#itens-container');
-        const index = container.children().length;
-        
-        const itemHtml = template.replace(/INDEX/g, index);
-        container.append(itemHtml);
-        
-        // Aplicar máscaras aos novos campos
-        App.initMasks();
-        
-        // Focar no campo descrição
-        container.find('.item-descricao').last().focus();
-        
-        // Atualizar numeração
-        this.atualizarNumeracao();
-    },
-    
-    // Remover item da venda
-    removerItem: function(button) {
-        $(button).closest('.item-venda').remove();
-        this.atualizarNumeracao();
-        this.calcularTotal();
-    },
-    
-    // Atualizar numeração dos itens
-    atualizarNumeracao: function() {
-        $('#itens-container .item-venda').each(function(index) {
-            $(this).find('.item-numero').text(index + 1);
-        });
-    },
-    
-    // Calcular total da venda
-    calcularTotal: function() {
-        let total = 0;
-        
-        $('#itens-container .item-venda').each(function() {
-            const quantidade = App.utils.parseMoney($(this).find('.item-quantidade').val() || '0');
-            const valorUnitario = App.utils.parseMoney($(this).find('.item-valor').val() || '0');
-            const subtotal = quantidade * valorUnitario;
+            // Validar CPF
+            $form.find('.cpf-validate').each(function() {
+                const $field = $(this);
+                const value = $field.val().trim();
+                
+                if (value && !App.utils.validateCPF(value)) {
+                    $field.addClass('is-invalid');
+                    isValid = false;
+                }
+            });
             
-            $(this).find('.item-subtotal').text(App.utils.formatMoney(subtotal));
-            total += subtotal;
+            // Validar email
+            $form.find('input[type="email"]').each(function() {
+                const $field = $(this);
+                const value = $field.val().trim();
+                
+                if (value && !App.utils.validateEmail(value)) {
+                    $field.addClass('is-invalid');
+                    isValid = false;
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                App.ui.showToast('Por favor, corrija os campos destacados', 'error');
+                
+                // Focar no primeiro campo inválido
+                $form.find('.is-invalid').first().focus();
+            }
         });
-        
-        $('#venda-total').text(App.utils.formatMoney(total));
-        $('#venda-total-input').val(total.toFixed(2));
-        
-        return total;
     }
 };
 
-// Inicializar quando documento estiver pronto
-$(document).ready(function() {
-    App.init();
-});
+// AJAX helpers
+App.ajax = {
+    
+    /**
+     * Configurações padrão para AJAX
+     */
+    defaults: {
+        timeout: 30000,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    },
+    
+    /**
+     * GET request
+     */
+    get: function(url, data = {}, options = {}) {
+        return this.request('GET', url, data, options);
+    },
+    
+    /**
+     * POST request
+     */
+    post: function(url, data = {}, options = {}) {
+        return this.request('POST', url, data, options);
+    },
+    
+    /**
+     * PUT request
+     */
+    put: function(url, data = {}, options = {}) {
+        return this.request('PUT', url, data, options);
+    },
+    
+    /**
+     * DELETE request
+     */
+    delete: function(url, options = {}) {
+        return this.request('DELETE', url, {}, options);
+    },
+    
+    /**
+     * Request genérico
+     */
+    request: function(method, url, data, options = {}) {
+        const settings = $.extend({}, this.defaults, options, {
+            method: method,
+            url: url,
+            data: method === 'GET' ? data : JSON.stringify(data),
+            contentType: method === 'GET' ? undefined : 'application/json',
+            dataType: 'json'
+        });
+        
+        // Adicionar CSRF token
+        if (App.config.csrfToken && ['POST', 'PUT', 'DELETE'].includes(method)) {
+            settings.headers['X-CSRFToken'] = App.config.csrfToken;
+        }
+        
+        return $.ajax(settings)
+            .fail(function(xhr, status, error) {
+                if (xhr.status === 401) {
+                    App.session.handleExpired();
+                } else if (xhr.status >= 500) {
+                    App.ui.showToast('Erro interno do servidor', 'error');
+                } else if (xhr.responseJSON && xhr.responseJSON.error) {
+                    App.ui.showToast(xhr.responseJSON.error, 'error');
+                } else {
+                    App.ui.showToast('Erro na comunicação com o servidor', 'error');
+                }
+            });
+    }
+};
 
-// Exportar para escopo global
-window.App = App;
+// Gerenciamento de sessão
+App.session = {
+    
+    checkInterval: null,
+    
+    /**
+     * Iniciar verificação de sessão
+     */
+    startChecking: function() {
+        this.checkInterval = setInterval(() => {
+            this.checkStatus();
+        }, App.config.sessionCheckInterval);
+    },
+    
+    /**
+     * Parar verificação de sessão
+     */
+    stopChecking: function() {
+        if (this.checkInterval) {
+            clearInterval(this.checkInterval);
+            this.checkInterval = null;
+        }
+    },
+    
+    /**
+     * Verificar status da sessão
+     */
+    checkStatus: function() {
+        App.ajax.get(App.config.endpoints.checkSession)
+            .done((response) => {
+                if (!response.logged_in) {
+                    this.handleExpired();
+                }
+            })
+            .fail(() => {
+                // Silenciosamente ignorar erros de verificação de sessão
+            });
+    },
+    
+    /**
+     * Estender sessão
+     */
+    extend: function() {
+        return App.ajax.post(App.config.endpoints.extendSession);
+    },
+    
+    /**
+     * Lidar com sessão expirada
+     */
+    handleExpired: function() {
+        this.stopChecking();
+        
+        App.ui.showConfirm({
+            title: 'Sessão Expirada',
+            message: 'Sua sessão expirou. Você será redirecionado para a página de login.',
+            confirmText: 'OK',
+            cancelText: '',
+            onConfirm: () => {
+                window.location.href = '/auth/login';
+            }
+        });
+    }
+};
+
+// Autocomplete helper
+App.autocomplete = {
+    
+    /**
+     * Configurar autocomplete de clientes
+     */
+    setupClienteAutocomplete: function(selector, options = {}) {
+        const defaults = {
+            minLength: 2,
+            delay: 300,
+            onSelect: null,
+            placeholder: 'Digite o nome do cliente...',
+            showId: false
+        };
+        
+        const settings = $.extend({}, defaults, options);
+        
+        $(selector).each(function() {
+            const $input = $(this);
+            let currentRequest = null;
+            
+            $input.attr('placeholder', settings.placeholder);
+            
+            $input.on('input', App.utils.debounce(function() {
+                const query = $(this).val().trim();
+                
+                if (query.length < settings.minLength) {
+                    $input.removeData('selected-client');
+                    return;
+                }
+                
+                // Cancelar request anterior
+                if (currentRequest) {
+                    currentRequest.abort();
+                }
+                
+                currentRequest = App.ajax.get(App.config.endpoints.clientesBuscar, {
+                    q: query,
+                    limit: 10
+                }).done((response) => {
+                    if (response.success && response.clientes) {
+                        App.autocomplete.showSuggestions($input, response.clientes, settings);
+                    }
+                }).always(() => {
+                    currentRequest = null;
+                });
+                
+            }, settings.delay));
+            
+            // Limpar dados quando campo for limpo
+            $input.on('blur', function() {
+                setTimeout(() => {
+                    const suggestions = $input.siblings('.autocomplete-suggestions');
+                    if (!suggestions.is(':hover')) {
+                        suggestions.hide();
+                    }
+                }, 200);
+            });
+        });
+    },
+    
+    /**
+     * Mostrar sugestões de autocomplete
+     */
+    showSuggestions: function($input, clientes, settings) {
+        let $suggestions = $input.siblings('.autocomplete-suggestions');
+        
+        if ($suggestions.length === 0) {
+            $suggestions = $('<div class="autocomplete-suggestions list-group" style="position: absolute; z-index: 1000; width: 100%; max-height: 300px; overflow-y: auto;"></div>');
+            $input.after($suggestions);
+        }
+        
+        $suggestions.empty();
+        
+        if (clientes.length === 0) {
+            $suggestions.append('<div class="list-group-item text-muted">Nenhum cliente encontrado</div>');
+        } else {
+            clientes.forEach(cliente => {
+                const displayText = settings.showId ? 
+                    `#${cliente.id} - ${cliente.nome}` : 
+                    cliente.nome;
+                
+                const telefoneText = cliente.telefone ? ` - ${cliente.telefone}` : '';
+                
+                const $item = $(`
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">${App.utils.escapeHtml(displayText)}</h6>
+                            <small class="text-muted">${App.utils.escapeHtml(telefoneText)}</small>
+                        </div>
+                    </a>
+                `);
+                
+                $item.on('click', function(e) {
+                    e.preventDefault();
+                    $input.val(cliente.nome);
+                    $input.data('selected-client', cliente);
+                    $suggestions.hide();
+                    
+                    if (settings.onSelect && typeof settings.onSelect === 'function') {
+                        settings.onSelect(cliente);
+                    }
+                });
+                
+                $suggestions.append($item);
+            });
+        }
+        
+        $suggestions.show();
+    }
+};
+
+// Inicialização quando documento estiver pronto
+$(document).ready(function() {
+    
+    // Configurar CSRF token para AJAX
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", App.config.csrfToken);
+            }
+        }
+    });
+    
+    // Aplicar máscaras
+    App.ui.applyMasks();
+    
+    // Configurar datepickers
+    App.ui.setupDatepickers();
+    
+    // Configurar validação de formulários
+    $('form').each(function() {
+        App.ui.setupFormValidation(this);
+    });
+    
+    // Iniciar verificação de sessão se usuário estiver logado
+    if (App.config.currentUser) {
+        App.session.startChecking();
+    }
+    
+    // Configurar tooltips do Bootstrap
+    $('[data-toggle="tooltip"]').tooltip();
+    
+    // Configurar popovers do Bootstrap
+    $('[data-toggle="popover"]').popover();
+    
+    // Auto-dismiss de alertas
+    $('.alert[data-auto-dismiss]').each(function() {
+        const timeout = $(this).data('auto-dismiss') || 5000;
+        setTimeout(() => {
+            $(this).fadeOut();
+        }, timeout);
+    });
+    
+    // Scroll to top button
+    $(window).scroll(function() {
+        if ($(this).scrollTop() > 100) {
+            $('.scroll-to-top').fadeIn();
+        } else {
+            $('.scroll-to-top').fadeOut();
+        }
+    });
+    
+    $('.scroll-to-top').click(function() {
+        $('html, body').animate({scrollTop: 0}, 600);
+        return false;
+    });
+    
+    // Loading em formulários
+    $('form').on('submit', function() {
+        const $form = $(this);
+        const $submitBtn = $form.find('button[type="submit"]');
+        
+        if (!$form.hasClass('no-loading')) {
+            $submitBtn.prop('disabled', true);
+            $submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Processando...');
+        }
+    });
+    
+    // Confirmar ações de exclusão
+    $('[data-confirm-delete]').on('click', function(e) {
+        e.preventDefault();
+        
+        const $this = $(this);
+        const message = $this.data('confirm-delete') || 'Tem certeza que deseja excluir este item?';
+        const action = $this.attr('href') || $this.data('url');
+        
+        App.ui.showConfirm({
+            title: 'Confirmar Exclusão',
+            message: message,
+            confirmText: 'Excluir',
+            confirmClass: 'btn-danger',
+            onConfirm: () => {
+                if ($this.is('a')) {
+                    window.location.href = action;
+                } else if ($this.data('form')) {
+                    $($this.data('form')).submit();
+                }
+            }
+        });
+    });
+    
+    console.log('Sistema Crediário Açougue - JavaScript carregado');
+});
